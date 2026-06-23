@@ -49,7 +49,7 @@ COMPARISON_FIG_HEIGHT_MM = 180
 
 LEADS = [6]
 COMPARISON_LEAD = 6
-N_BOOTSTRAP = 5
+N_BOOTSTRAP = 5000
 ALPHA = 0.05
 RANDOM_SEED = 42
 
@@ -127,10 +127,10 @@ DATA_SOURCES = [
     },
     {
         "id": "source_5",
-        "label": "SST_NOAA_CMIP6",
+        "label": "SST_NOAA_5MIROC6",
         "pickle_dir": Path(
             r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_CMIP1"
+            r"pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6"
         ),
         "sample_size": 60,
     },
@@ -439,7 +439,7 @@ def plot_small_multiples(
     y_upper = 1.05
 
     fig_width = PUB_FIG_WIDTH_MM / 25.4
-    fig_height = max(PUB_FIG_HEIGHT_MM / 25.4, 1.1 + 1.65 * len(source_ids))
+    fig_height = max(PUB_FIG_HEIGHT_MM / 25.4, 1.1 + 1.9 * len(source_ids))
     fig, axes = plt.subplots(
         len(source_ids),
         1,
@@ -452,7 +452,7 @@ def plot_small_multiples(
         right=0.985,
         bottom=0.10,
         top=0.95,
-        hspace=0.10,
+        hspace=0.16,
     )
     axes = np.atleast_1d(axes)
 

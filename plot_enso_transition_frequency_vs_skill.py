@@ -58,7 +58,7 @@ TRANSITION_METHOD = "independent"
 #   "neutral_la_nina_neutral"
 #   "extreme_el_nino_neutral_extreme_el_nino"
 #   "extreme_la_nina_neutral_extreme_la_nina"
-TRANSITION_MODE = "neutral_la_nina_neutral"
+TRANSITION_MODE = "el_nino_neutral_el_nino"
 ACC_WARNING_TOLERANCE = 0.02
 
 SHOW_FIGURE = False
@@ -112,10 +112,10 @@ DATA_SOURCES = [
     },
     {
         "id": "source_5",
-        "label": "SST_NOAA_CMIP6",
+        "label": "SST_NOAA_5MIROC6",
         "pickle_dir": Path(
             r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_CMIP1"
+            r"pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6"
         ),
     },
 ]

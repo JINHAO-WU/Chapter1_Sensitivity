@@ -104,10 +104,10 @@ DATA_SOURCES = [
     },
     {
         "id": "source_5",
-        "label": "SST_NOAA_CMIP6",
+        "label": "SST_NOAA_5MIROC6",
         "pickle_dir": Path(
             r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_CMIP1"
+            r"pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6"
         ),
     },
 ]

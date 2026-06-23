@@ -49,12 +49,27 @@ TICK_LABEL_SIZE = SHARED_TICK_LABEL_SIZE
 LEGEND_SIZE = SHARED_LEGEND_SIZE
 
 DL_SOURCES = [
-    {"id": "source_1", "label": "SST_NOAA", "pickle_dir": Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/pickle_HamCNN_input6_var1_sst_NOAA")},
-    {"id": "source_2", "label": "SST_HadI", "pickle_dir": Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/pickle_HamCNN_input6_var1_sst_HadI")},
-    {"id": "source_3", "label": "SST_NOAA_PO", "pickle_dir": Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/pickle_HamCNN_input6_var1_sst_NOAA_PO")},
-    {"id": "source_4", "label": "SST_OHC300_NOAA", "pickle_dir": Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/pickle_HamCNN_input6_var2_sst_ohc300_NOAA")},
-    {"id": "source_5", "label": "SST_NOAA_CMIP6", "pickle_dir": Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/pickle_HamCNN_input6_var1_sst_NOAA_CMIP1")},
-]
+    {"id": "source_1", 
+     "label": "SST_NOAA", 
+     "pickle_dir": Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/pickle_HamCNN_input6_var1_sst_NOAA")
+    },
+    {"id": "source_2", 
+     "label": "SST_HadI", 
+     "pickle_dir": Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/pickle_HamCNN_input6_var1_sst_HadI")
+    },
+    {"id": "source_3", 
+     "label": "SST_NOAA_PO", 
+     "pickle_dir": Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/pickle_HamCNN_input6_var1_sst_NOAA_PO")
+    },
+    {"id": "source_4", 
+     "label": "SST_OHC300_NOAA", 
+     "pickle_dir": Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/pickle_HamCNN_input6_var2_sst_ohc300_NOAA")
+    },
+    {"id": "source_5", 
+     "label": "SST_NOAA_5MIROC6", 
+     "pickle_dir": Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6")
+    },
+]   
 
 NMME_DIR = Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/Data/NMME")
 OIV2_FILE = NMME_DIR / "NMME_OIv2.nc"
