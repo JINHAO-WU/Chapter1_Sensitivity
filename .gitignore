@@ -8,5 +8,8 @@
 /Sampling
 /target_season_figures
 /target_type_figures
+/yearly_covariance_contribution_figures
 /__pycache__
 /中文Temporal sensitivity limits robust evaluation of deep-learning ENSO forecasts.docx
+yearly_covariance_contribution_figures/yearly_covariance_contribution_lead6.png
+.gitignore
