@@ -13,8 +13,6 @@ plotting script rather than a command-line tool.
 
 from __future__ import annotations
 
-import pickle
-import re
 from pathlib import Path
 
 import matplotlib as mpl
@@ -22,6 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from Basic_sources import get_dl_sources, load_source_forecast_table
 from plot_style import AXIS_LABEL_SIZE, TITLE_SIZE, configure_publication_style, style_boxed_axes, validate_data_sources
 
 
@@ -56,48 +55,7 @@ DELTA_CMAP = "PuOr"
 REFERENCE_VMIN = 0.2
 REFERENCE_VMAX = 1.0
 
-DATA_SOURCES = [
-    {
-        "id": "source_1",
-        "label": "SST_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA"
-        ),
-    },
-    {
-        "id": "source_2",
-        "label": "SST_HadI",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_HadI"
-        ),
-    },
-    {
-        "id": "source_3",
-        "label": "SST_NOAA_PO",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_PO"
-        ),
-    },
-    {
-        "id": "source_4",
-        "label": "SST_OHC300_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var2_sst_ohc300_NOAA"
-        ),
-    },
-    {
-        "id": "source_5",
-        "label": "SST_NOAA_5MIROC6",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6"
-        ),
-    },
-]
+DATA_SOURCES = get_dl_sources()
 
 MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 SEASON_LABELS = ["DJF", "MAM", "JJA", "SON"]
@@ -116,60 +74,7 @@ def load_all_predictions(folder: Path) -> pd.DataFrame:
     Each row represents one forecast value for one absolute target month and
     one leading time.
     """
-    folder = Path(folder)
-    if not folder.exists():
-        raise FileNotFoundError(f"Pickle directory does not exist: {folder}")
-
-    pickle_files = sorted(folder.glob("*.pickle"))
-    if not pickle_files:
-        raise FileNotFoundError(f"No pickle files found in: {folder}")
-
-    records = []
-    for path in pickle_files:
-        year_match = re.search(r"_(\d{4})_", path.name)
-        if not year_match:
-            continue
-
-        start_year = int(year_match.group(1))
-        input_match = re.search(r"input(\d+)", path.name)
-        input_len = int(input_match.group(1)) if input_match else 6
-        with path.open("rb") as fh:
-            data = pickle.load(fh)
-
-        pred = np.asarray(data["predict_value"])
-        real = np.asarray(data["real_value"])
-
-        if pred.shape != real.shape:
-            raise ValueError(
-                f"{path.name}: predict_value and real_value have different shapes "
-                f"{pred.shape} vs {real.shape}."
-            )
-        if pred.ndim != 2:
-            raise ValueError(f"{path.name}: expected a 2D array, got {pred.ndim}D.")
-
-        n_samples, n_lead = pred.shape
-        base_offset = (start_year - BASE_YEAR) * 12
-
-        for sample_index in range(n_samples):
-            for lead in range(1, n_lead + 1):
-                abs_month = base_offset + sample_index + input_len + (lead - 1)
-                records.append(
-                    {
-                        "abs_month": abs_month,
-                        "leading": lead,
-                        "input_len": input_len,
-                        "pickle_year": start_year,
-                        "pred": pred[sample_index, lead - 1],
-                        "real": real[sample_index, lead - 1],
-                    }
-                )
-
-    if not records:
-        raise ValueError(f"No usable pickle files with parseable years in: {folder}")
-
-    df = pd.DataFrame(records)
-    df["year"] = BASE_YEAR + df["abs_month"] // 12
-    df["month"] = df["abs_month"] % 12 + 1
+    df = load_source_forecast_table({"pickle_dir": Path(folder)}, base_year=BASE_YEAR)
     if TIME_START is not None or TIME_END is not None:
         ym = df["year"] * 12 + df["month"]
         if TIME_START is not None:

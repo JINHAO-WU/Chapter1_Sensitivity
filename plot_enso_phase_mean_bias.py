@@ -7,8 +7,6 @@ observation and grouped using the observed Nino3.4 index.
 
 from __future__ import annotations
 
-import pickle
-import re
 import sys
 from pathlib import Path
 
@@ -17,6 +15,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
 
+from Basic_sources import get_dl_sources, list_pickle_files, load_prediction_arrays, parse_start_year
 from plot_style import (
     AXIS_LABEL_SIZE,
     LEGEND_SIZE,
@@ -49,78 +48,23 @@ PHASE_STYLES = {
     "La Niña": {"linestyle": "--", "marker": "s"},
 }
 
-DATA_SOURCES = [
-    {
-        "id": "source_1",
-        "label": "SST_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA"
-        ),
-    },
-    {
-        "id": "source_2",
-        "label": "SST_HadI",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_HadI"
-        ),
-    },
-    {
-        "id": "source_3",
-        "label": "SST_NOAA_PO",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_PO"
-        ),
-    },
-    {
-        "id": "source_4",
-        "label": "SST_OHC300_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var2_sst_ohc300_NOAA"
-        ),
-    },
-    {
-        "id": "source_5",
-        "label": "SST_NOAA_5MIROC6",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6"
-        ),
-    },
-]
+DATA_SOURCES = get_dl_sources()
 
 
 def start_year_from_name(pickle_path: Path) -> int:
     """Return the test-set start year encoded in a pickle file name."""
-    match = re.search(r"_(\d{4})_", pickle_path.name)
-    if match is None:
-        raise ValueError(f"Cannot find a four-digit start year in {pickle_path.name!r}.")
-    return int(match.group(1))
+    return parse_start_year(pickle_path)
 
 
 def source_monthly_forecasts(source: dict) -> pd.DataFrame:
     """Load one source and average duplicate target-month forecasts."""
     pickle_dir = source["pickle_dir"]
-    if not pickle_dir.exists():
-        raise FileNotFoundError(f"Pickle directory does not exist: {pickle_dir}")
-
-    pickle_files = sorted(pickle_dir.glob("*.pickle"))
-    if not pickle_files:
-        raise FileNotFoundError(f"No pickle files found in: {pickle_dir}")
+    pickle_files = list_pickle_files(pickle_dir)
 
     expected_samples = 360 - INPUT_MONTHS - len(FORECAST_LEADS)
     tables = []
     for pickle_path in pickle_files:
-        with pickle_path.open("rb") as handle:
-            data = pickle.load(handle)
-
-        prediction = np.asarray(data["predict_value"], dtype=float)
-        observation = np.asarray(data["real_value"], dtype=float)
-        if prediction.shape != observation.shape or prediction.ndim != 2:
-            raise ValueError(f"Unexpected prediction/observation shape in {pickle_path.name}")
+        prediction, observation = load_prediction_arrays(pickle_path)
         if prediction.shape[0] != expected_samples:
             raise ValueError(
                 f"{pickle_path.name}: expected {expected_samples} samples for "

@@ -9,8 +9,6 @@ standard deviations.
 
 from __future__ import annotations
 
-import pickle
-import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -18,6 +16,13 @@ import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
 
+from Basic_sources import (
+    get_dl_sources,
+    list_pickle_files,
+    load_prediction_arrays,
+    parse_input_months,
+    parse_start_year,
+)
 from plot_style import (
     AXIS_LABEL_SIZE,
     LEGEND_SIZE,
@@ -49,77 +54,23 @@ FIGURE_HEIGHT_INCH = 12.0
 OBSERVATION_COLOR = "#000000"
 PREDICTION_COVARIANCE_COLOR = NMME_COLORS[3]
 
-DATA_SOURCES = [
-    {
-        "id": "source_1",
-        "label": "SST_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA"
-        ),
-    },
-    {
-        "id": "source_2",
-        "label": "SST_HadI",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_HadI"
-        ),
-    },
-    {
-        "id": "source_3",
-        "label": "SST_NOAA_PO",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_PO"
-        ),
-    },
-    {
-        "id": "source_4",
-        "label": "SST_OHC300_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var2_sst_ohc300_NOAA"
-        ),
-    },
-    {
-        "id": "source_5",
-        "label": "SST_NOAA_5MIROC6",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6"
-        ),
-    },
-]
+DATA_SOURCES = get_dl_sources()
 
 
 def parse_pickle_metadata(pickle_path: Path) -> tuple[int, int]:
     """Return the test-start year and input-window length encoded in a filename."""
-    year_match = re.search(r"_(\d{4})_", pickle_path.name)
-    if year_match is None:
-        raise ValueError(f"Could not parse a test-start year from {pickle_path.name}")
-    input_match = re.search(r"input(\d+)", pickle_path.name)
-    input_months = int(input_match.group(1)) if input_match else INPUT_WINDOW_MONTHS
-    return int(year_match.group(1)), input_months
+    return parse_start_year(pickle_path), parse_input_months(pickle_path, default=INPUT_WINDOW_MONTHS)
 
 
 def load_monthly_ensemble_mean(source: dict) -> pd.DataFrame:
     """Load one source and average duplicate forecasts for each target month."""
     pickle_dir = Path(source["pickle_dir"])
-    pickle_files = sorted(pickle_dir.glob("*.pickle"))
-    if not pickle_files:
-        raise FileNotFoundError(f"No pickle files found in: {pickle_dir}")
+    pickle_files = list_pickle_files(pickle_dir)
 
     tables = []
     for pickle_path in pickle_files:
         start_year, input_months = parse_pickle_metadata(pickle_path)
-        with pickle_path.open("rb") as handle:
-            dataset = pickle.load(handle)
-
-        prediction = np.asarray(dataset["predict_value"], dtype=float)
-        observation = np.asarray(dataset["real_value"], dtype=float)
-        if prediction.shape != observation.shape or prediction.ndim != 2:
-            raise ValueError(f"Unexpected prediction/observation shape in {pickle_path.name}")
+        prediction, observation = load_prediction_arrays(pickle_path)
         if LEAD < 1 or LEAD > prediction.shape[1]:
             raise ValueError(f"{pickle_path.name}: lead {LEAD} is unavailable")
 

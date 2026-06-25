@@ -9,14 +9,13 @@ composite-event window.
 from __future__ import annotations
 
 import math
-import pickle
-import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
+from Basic_sources import get_dl_sources, list_pickle_files_by_year, load_prediction_arrays
 from plot_style import (
     AXIS_LABEL_SIZE,
     LEGEND_SIZE,
@@ -42,48 +41,7 @@ COMPOSITE_MONTHS_BEFORE = 6
 COMPOSITE_MONTHS_AFTER = 6
 RUN_SELF_TEST = True
 
-DATA_SOURCES = [
-    {
-        "id": "source_1",
-        "label": "SST_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA"
-        ),
-    },
-    {
-        "id": "source_2",
-        "label": "SST_HadI",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_HadI"
-        ),
-    },
-    {
-        "id": "source_3",
-        "label": "SST_NOAA_PO",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_PO"
-        ),
-    },
-    {
-        "id": "source_4",
-        "label": "SST_OHC300_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var2_sst_ohc300_NOAA"
-        ),
-    },
-    {
-        "id": "source_5",
-        "label": "SST_NOAA_5MIROC6",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6"
-        ),
-    },
-]
+DATA_SOURCES = get_dl_sources(label_style="pretty")
 
 EVENT_CLASSES = [
     "Strong El Niño",
@@ -111,42 +69,9 @@ OBSERVED_COLOR = "#222222"
 # Data loading and event calculations
 # =============================================================================
 
-def parse_start_year(path: Path) -> int:
-    """Extract the 4-digit test-start year from a pickle filename."""
-    match = re.search(r"_(\d{4})_", path.name)
-    if not match:
-        raise ValueError(f"Cannot parse test start year from {path.name!r}.")
-    return int(match.group(1))
-
-
-def list_pickle_files_by_year(pickle_dir: Path) -> dict[int, Path]:
-    """Return one pickle file per test-start year."""
-    if not pickle_dir.exists():
-        raise FileNotFoundError(f"Pickle directory does not exist: {pickle_dir}")
-
-    file_map: dict[int, list[Path]] = {}
-    for path in pickle_dir.glob("*.pickle"):
-        year = parse_start_year(path)
-        file_map.setdefault(year, []).append(path)
-
-    if not file_map:
-        raise FileNotFoundError(f"No .pickle files found in {pickle_dir}.")
-
-    return {year: sorted(paths)[0] for year, paths in sorted(file_map.items())}
-
-
 def load_pickle_arrays(path: Path) -> tuple[np.ndarray, np.ndarray]:
     """Load prediction and observation arrays from one pickle file."""
-    with path.open("rb") as handle:
-        data = pickle.load(handle)
-
-    pred = np.asarray(data["predict_value"], dtype=float)
-    real = np.asarray(data["real_value"], dtype=float)
-    if pred.shape != real.shape or pred.ndim != 2:
-        raise ValueError(
-            f"{path.name}: predict_value and real_value must be matching 2-D arrays."
-        )
-
+    pred, real = load_prediction_arrays(path)
     expected_samples = 360 - INPUT_MONTHS - 18
     if pred.shape[0] != expected_samples:
         raise ValueError(

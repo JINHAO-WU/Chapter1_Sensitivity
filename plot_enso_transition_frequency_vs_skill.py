@@ -21,6 +21,7 @@ import numpy as np
 from matplotlib.ticker import MaxNLocator
 from scipy import stats
 
+from Basic_sources import get_dl_sources, list_pickle_files
 from plot_style import configure_publication_style as configure_shared_publication_style, style_boxed_axes, style_open_axes, validate_data_sources
 
 
@@ -77,48 +78,7 @@ PLOT_STYLE = {
     "highlight_color": "#b2182b",
 }
 
-DATA_SOURCES = [
-    {
-        "id": "source_1",
-        "label": "SST_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA"
-        ),
-    },
-    {
-        "id": "source_2",
-        "label": "SST_HadI",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_HadI"
-        ),
-    },
-    {
-        "id": "source_3",
-        "label": "SST_NOAA_PO",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_PO"
-        ),
-    },
-    {
-        "id": "source_4",
-        "label": "SST_OHC300_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var2_sst_ohc300_NOAA"
-        ),
-    },
-    {
-        "id": "source_5",
-        "label": "SST_NOAA_5MIROC6",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6"
-        ),
-    },
-]
+DATA_SOURCES = get_dl_sources()
 
 ORDINARY_TRANSITION_MODES = {
     "el_nino_neutral_el_nino",
@@ -406,9 +366,7 @@ def collect_source_window_points(source: dict) -> list[WindowPoint]:
     dataset_label = source["label"]
     pickle_dir = source["pickle_dir"]
     lead_index = LEAD - 1
-    pickle_files = sorted(pickle_dir.glob("*.pickle"))
-    if not pickle_files:
-        raise FileNotFoundError(f"No .pickle files found in {pickle_dir}")
+    pickle_files = list_pickle_files(pickle_dir)
 
     points: list[WindowPoint] = []
     for file_index, pickle_path in enumerate(pickle_files):

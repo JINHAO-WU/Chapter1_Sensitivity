@@ -16,8 +16,6 @@ plotting script rather than a command-line tool.
 from __future__ import annotations
 
 import math
-import pickle
-import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -25,6 +23,12 @@ import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
+from Basic_sources import (
+    get_dl_sources,
+    list_pickle_files_by_year,
+    load_prediction_arrays,
+    parse_start_year,
+)
 from plot_style import (
     AXIS_LABEL_SIZE,
     LEGEND_SIZE,
@@ -49,7 +53,7 @@ COMPARISON_FIG_HEIGHT_MM = 180
 
 LEADS = [6]
 COMPARISON_LEAD = 6
-N_BOOTSTRAP = 5000
+N_BOOTSTRAP = 5
 ALPHA = 0.05
 RANDOM_SEED = 42
 
@@ -88,53 +92,7 @@ VALUE_OPTIONS = {
     "observed": ("observed_r", "observed"),
 }
 
-DATA_SOURCES = [
-    {
-        "id": "source_1",
-        "label": "SST_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA"
-        ),
-        "sample_size": 60,
-    },
-    {
-        "id": "source_2",
-        "label": "SST_HadI",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_HadI"
-        ),
-        "sample_size": 60,
-    },
-    {
-        "id": "source_3",
-        "label": "SST_NOAA_PO",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_PO"
-        ),
-        "sample_size": 60,
-    },
-    {
-        "id": "source_4",
-        "label": "SST_OHC300_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var2_sst_ohc300_NOAA"
-        ),
-        "sample_size": 60,
-    },
-    {
-        "id": "source_5",
-        "label": "SST_NOAA_5MIROC6",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6"
-        ),
-        "sample_size": 60,
-    },
-]
+DATA_SOURCES = get_dl_sources(label_style="math", sample_size=50)
 
 
 # =============================================================================
@@ -195,45 +153,9 @@ def confidence_interval(values: np.ndarray, alpha: float) -> tuple[float, float]
 # Data loading and calculation
 # =============================================================================
 
-def parse_year_from_filename(path: Path) -> int:
-    """Extract the 4-digit test-start year from a pickle filename."""
-    match = re.search(r"_(\d{4})_", path.name)
-    if not match:
-        raise ValueError(f"Cannot parse year from filename: {path.name}")
-    return int(match.group(1))
-
-
-def list_pickle_files_by_year(pickle_dir: Path) -> dict[int, Path]:
-    """Return one pickle path per year, sorted by year."""
-    if not pickle_dir.exists():
-        raise FileNotFoundError(f"Pickle directory does not exist: {pickle_dir}")
-
-    file_map: dict[int, list[Path]] = {}
-    for path in pickle_dir.glob("*.pickle"):
-        year = parse_year_from_filename(path)
-        file_map.setdefault(year, []).append(path)
-
-    if not file_map:
-        raise FileNotFoundError(f"No pickle files found in: {pickle_dir}")
-
-    return {year: sorted(paths)[0] for year, paths in sorted(file_map.items())}
-
-
 def load_lead_arrays(path: Path, lead: int) -> tuple[np.ndarray, np.ndarray]:
     """Load prediction and observation arrays for one lead from one pickle file."""
-    with path.open("rb") as fh:
-        data = pickle.load(fh)
-
-    pred_output = np.asarray(data["predict_value"])
-    real_output = np.asarray(data["real_value"])
-
-    if pred_output.shape != real_output.shape:
-        raise ValueError(
-            f"{path.name}: predict_value and real_value have different shapes "
-            f"{pred_output.shape} vs {real_output.shape}."
-        )
-    if pred_output.ndim != 2:
-        raise ValueError(f"{path.name}: expected a 2D array, got {pred_output.ndim}D.")
+    pred_output, real_output = load_prediction_arrays(path)
     if lead < 1 or lead > pred_output.shape[1]:
         raise ValueError(
             f"{path.name}: requested lead {lead}, but only "
@@ -258,7 +180,7 @@ def compute_file_result(path: Path, lead: int, sample_size: int, seed: int) -> d
 
     return {
         "lead": lead,
-        "year": parse_year_from_filename(path),
+        "year": parse_start_year(path),
         "sample_size": sample_size,
         "r_mean": float(boot_r.mean()),
         "ci_lo": ci_lo,
@@ -333,11 +255,22 @@ def plot_overview_lines(
         [result[field] for result in results if result["lead"] == COMPARISON_LEAD],
         dtype=float,
     )
-    data_min = float(np.nanmin(values))
-    data_max = float(np.nanmax(values))
+    reference_ci_values = np.array(
+        [
+            result[ci_field]
+            for result in results
+            if result["dataset"] == REFERENCE_DATASET_ID
+            and result["lead"] == COMPARISON_LEAD
+            for ci_field in ("ci_lo", "ci_hi")
+        ],
+        dtype=float,
+    )
+    y_values = np.concatenate([values, reference_ci_values])
+    data_min = float(np.nanmin(y_values))
+    data_max = float(np.nanmax(y_values))
     y_lower = min(FIGURE1_REFERENCE_R, data_min)
     y_upper = max(FIGURE1_REFERENCE_R, data_max)
-    padding = max(0.03, (y_upper - y_lower) * 0.12)
+    padding = max(0.1, (y_upper - y_lower) * 0.15)
     y_lower = max(-1.0, y_lower - padding)
     y_upper = min(1.05, y_upper + padding)
 
@@ -364,6 +297,23 @@ def plot_overview_lines(
             dataset_id = source["id"]
             label = source["label"]
             lead_years, values = values_for(results, dataset_id, COMPARISON_LEAD, field)
+            
+            # Add 95% confidence interval only for source_1 in Figure 1.
+            # This uses the same ci_lo / ci_hi values already computed for Figure 2.
+            if dataset_id == "source_1":
+                _, ci_lo = values_for(results, dataset_id, COMPARISON_LEAD, "ci_lo")
+                _, ci_hi = values_for(results, dataset_id, COMPARISON_LEAD, "ci_hi")
+                ax.fill_between(
+                    lead_years,
+                    ci_lo,
+                    ci_hi,
+                    color=dataset_color(dataset_id),
+                    alpha=0.14,
+                    linewidth=0,
+                    zorder=1,
+                )
+
+            
             ax.plot(
                 lead_years,
                 values,
@@ -407,11 +357,17 @@ def plot_overview_lines(
             if label not in legend_labels:
                 legend_handles.append(handle)
                 legend_labels.append(label)
+    
+    legend_handles.append(
+        Patch(facecolor="#999999", alpha=0.14, edgecolor="none", label="95% CI")
+    )
+    legend_labels.append("95% CI")
+    
     fig.legend(
         handles=legend_handles,
         labels=legend_labels,
         loc="upper center",
-        ncol=len(legend_handles),
+        ncol=3,
         frameon=False,
         bbox_to_anchor=(0.5, 0.995),
         fontsize=PLOT_STYLE["legend_size"],

@@ -10,8 +10,6 @@ variance.
 
 from __future__ import annotations
 
-import pickle
-import re
 from pathlib import Path
 
 import matplotlib as mpl
@@ -20,6 +18,13 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 
+from Basic_sources import (
+    get_dl_sources,
+    list_pickle_files,
+    load_prediction_arrays,
+    parse_input_months,
+    parse_start_year,
+)
 from plot_style import (
     AXIS_LABEL_SIZE,
     LEGEND_SIZE,
@@ -69,48 +74,7 @@ MONTH_TO_SEASON = {
 }
 MONTH_POSITION_MARKERS = {1: "o", 2: "s", 3: "^"}
 
-DATA_SOURCES = [
-    {
-        "id": "source_1",
-        "label": "SST_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA"
-        ),
-    },
-    {
-        "id": "source_2",
-        "label": "SST_HadI",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_HadI"
-        ),
-    },
-    {
-        "id": "source_3",
-        "label": "SST_NOAA_PO",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_PO"
-        ),
-    },
-    {
-        "id": "source_4",
-        "label": "SST_OHC300_NOAA",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var2_sst_ohc300_NOAA"
-        ),
-    },
-    {
-        "id": "source_5",
-        "label": "SST_NOAA_5MIROC6",
-        "pickle_dir": Path(
-            r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File/"
-            r"pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6"
-        ),
-    },
-]
+DATA_SOURCES = get_dl_sources()
 
 MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 EXTENDED_MONTH_LABELS = [str(month) for month in range(1, 13)] + [str(month) for month in range(1, 12)]
@@ -122,27 +86,18 @@ EXTENDED_MONTH_LABELS = [str(month) for month in range(1, 13)] + [str(month) for
 
 def parse_pickle_year(pickle_path: Path) -> int:
     """Return the first test-data year encoded in a pickle filename."""
-    year_match = re.search(r"_(\d{4})_", pickle_path.name)
-    if year_match is None:
-        raise ValueError(f"Could not parse a four-digit year from {pickle_path.name}")
-    return int(year_match.group(1))
+    return parse_start_year(pickle_path)
 
 
 def parse_input_window_months(pickle_path: Path) -> int:
     """Return the input-window length encoded in a pickle filename."""
-    input_match = re.search(r"input(\d+)", pickle_path.name)
-    return int(input_match.group(1)) if input_match is not None else INPUT_WINDOW_MONTHS
+    return parse_input_months(pickle_path, default=INPUT_WINDOW_MONTHS)
 
 
 def load_source_predictions(source: dict) -> pd.DataFrame:
     """Load one source into target-month, lead, prediction, and observation rows."""
     pickle_dir = Path(source["pickle_dir"])
-    if not pickle_dir.exists():
-        raise FileNotFoundError(f"Pickle directory does not exist: {pickle_dir}")
-
-    pickle_files = sorted(pickle_dir.glob("*.pickle"))
-    if not pickle_files:
-        raise FileNotFoundError(f"No pickle files found in: {pickle_dir}")
+    pickle_files = list_pickle_files(pickle_dir)
 
     tables = []
     for pickle_path in pickle_files:
@@ -154,16 +109,7 @@ def load_source_predictions(source: dict) -> pd.DataFrame:
                 f"but INPUT_WINDOW_MONTHS is {INPUT_WINDOW_MONTHS}."
             )
 
-        with pickle_path.open("rb") as handle:
-            dataset = pickle.load(handle)
-
-        prediction = np.asarray(dataset["predict_value"], dtype=float)
-        observation = np.asarray(dataset["real_value"], dtype=float)
-        if prediction.shape != observation.shape or prediction.ndim != 2:
-            raise ValueError(
-                f"{pickle_path.name}: expected matching 2D prediction/observation arrays; "
-                f"received {prediction.shape} and {observation.shape}."
-            )
+        prediction, observation = load_prediction_arrays(pickle_path)
         if prediction.shape[1] < max(LEADS):
             raise ValueError(
                 f"{pickle_path.name}: only {prediction.shape[1]} leads are available; "
