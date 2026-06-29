@@ -38,7 +38,10 @@ if hasattr(sys.stdout, "reconfigure"):
 INPUT_MONTHS = 6
 FORECAST_LEADS = np.arange(1, 19)
 BASE_YEAR = 1871
-OUTPUT_DIR = Path("enso_phase_bias_figures")
+FIGURE_ROOT = Path("Figures")
+FIGURE_ID = "D"
+FIGURE_NAME = "enso_phase_mean_bias"
+OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 OUTPUT_FORMATS = ("png", "pdf")
 FIGURE_DPI = 600
 RUN_SELF_TEST = True
@@ -219,7 +222,7 @@ def main() -> None:
     figure.subplots_adjust(top=0.75, left=0.11, right=0.98, bottom=0.13)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    output_base = OUTPUT_DIR / "enso_phase_mean_bias_by_lead"
+    output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}_by_lead"
     for output_format in OUTPUT_FORMATS:
         output_path = output_base.with_suffix(f".{output_format}")
         save_kwargs = {"bbox_inches": "tight"}

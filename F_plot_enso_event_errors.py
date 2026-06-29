@@ -32,7 +32,10 @@ from plot_style import (
 # User configuration
 # =============================================================================
 
-OUTPUT_DIR = Path("enso_event_figures_error")
+FIGURE_ID = "F"
+FIGURE_NAME = "enso_event_errors"
+FIGURE_ROOT = Path("Figures")
+OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 FIGURE_DPI = 300
 
 LEADS = [6]
@@ -41,7 +44,7 @@ COMPOSITE_MONTHS_BEFORE = 6
 COMPOSITE_MONTHS_AFTER = 6
 RUN_SELF_TEST = True
 
-DATA_SOURCES = get_dl_sources(label_style="pretty")
+DATA_SOURCES = get_dl_sources()
 
 EVENT_CLASSES = [
     "Strong El Niño",
@@ -511,10 +514,10 @@ def write_figures(
     token = lead_token()
 
     amplitude_path = OUTPUT_DIR / (
-        f"enso_event_amplitude_underestimate_by_class_lead{token}.png"
+        f"{FIGURE_ID}_{FIGURE_NAME}_amplitude_underestimate_by_class_lead{token}.png"
     )
     peak_error_path = OUTPUT_DIR / (
-        f"enso_event_peak_month_error_by_phase_lead{token}.png"
+        f"{FIGURE_ID}_{FIGURE_NAME}_peak_month_error_by_phase_lead{token}.png"
     )
 
     plot_amplitude_by_class(results, data_sources, amplitude_path)

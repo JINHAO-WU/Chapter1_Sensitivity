@@ -29,7 +29,10 @@ from plot_style import AXIS_LABEL_SIZE, TITLE_SIZE, configure_publication_style,
 # =============================================================================
 
 BASE_YEAR = 1871
-OUTPUT_DIR = Path(r"target_season_figures")
+FIGURE_ROOT = Path("Figures")
+FIGURE_ID = "C"
+FIGURE_NAME = "target_season_correlation"
+OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 FIGURE_DPI = 600
 
 MAX_LEAD_CALC = 18
@@ -335,14 +338,14 @@ def main() -> None:
         plot_reference_delta_figure(
             results,
             "lead_corr",
-            OUTPUT_DIR / f"paper_lead_correlation_delta_vs_{reference_label}",
+            OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}_lead_correlation_delta_vs_{reference_label}",
         )
     )
     saved_paths.extend(
         plot_reference_delta_figure(
             results,
             "target_vs_first_corr",
-            OUTPUT_DIR / f"paper_target_vs_first_delta_vs_{reference_label}",
+            OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}_target_vs_first_delta_vs_{reference_label}",
         )
     )
 

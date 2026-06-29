@@ -44,8 +44,11 @@ LEAD = 6
 MIN_MONTHS = 3
 OBSERVATION_TOLERANCE = 1e-10
 
-OUTPUT_DIR = Path("yearly_covariance_contribution_figures")
-OUTPUT_BASENAME = "yearly_covariance_contribution_lead6"
+FIGURE_ROOT = Path("Figures")
+FIGURE_ID = "I"
+FIGURE_NAME = "yearly_covariance_contribution"
+OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
+OUTPUT_BASENAME = f"{FIGURE_ID}_{FIGURE_NAME}_lead6"
 OUTPUT_FORMATS = ("png", "pdf")
 FIGURE_DPI = 600
 FIGURE_WIDTH_INCH = 7.2

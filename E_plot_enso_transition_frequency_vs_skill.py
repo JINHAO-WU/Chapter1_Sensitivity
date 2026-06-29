@@ -29,7 +29,10 @@ from plot_style import configure_publication_style as configure_shared_publicati
 # User configuration
 # =============================================================================
 
-OUTPUT_DIR = Path("enso_transition_skill_figures")
+FIGURE_ROOT = Path("Figures")
+FIGURE_ID = "E"
+FIGURE_NAME = "enso_transition_frequency_vs_skill"
+OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 FIGURE_DPI = 600
 OUTPUT_FORMATS = ("png", "pdf") # "png" "pdf"
 PUB_FIG_WIDTH_MM = 183
@@ -59,7 +62,7 @@ TRANSITION_METHOD = "independent"
 #   "neutral_la_nina_neutral"
 #   "extreme_el_nino_neutral_extreme_el_nino"
 #   "extreme_la_nina_neutral_extreme_la_nina"
-TRANSITION_MODE = "el_nino_neutral_el_nino"
+TRANSITION_MODE = "neutral_la_nina_neutral"
 ACC_WARNING_TOLERANCE = 0.02
 
 SHOW_FIGURE = False
@@ -465,7 +468,7 @@ def make_output_paths(figure_name: str) -> list[Path]:
     """Return configured output paths for one figure name."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_stem = (
-        f"{figure_name}_{TRANSITION_METHOD}_"
+        f"{FIGURE_ID}_{FIGURE_NAME}_{figure_name}_{TRANSITION_METHOD}_"
         f"{transition_mode_filename_token()}_lead{LEAD}"
     )
     return [OUTPUT_DIR / f"{output_stem}.{file_format}" for file_format in OUTPUT_FORMATS]

@@ -47,8 +47,11 @@ MIN_SAMPLES = 3
 # Choose "standard_deviation" for Niño 3.4 spread in °C, or "variance" for °C².
 SPREAD_METRIC = "standard_deviation"
 
-OUTPUT_DIR = Path("nino34_variance_seasonality_figures")
-OUTPUT_BASENAME = "nino34_variance_first_forecast_month_lead1-12"
+FIGURE_ROOT = Path("Figures")
+FIGURE_ID = "H"
+FIGURE_NAME = "nino34_variance_seasonality"
+OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
+OUTPUT_BASENAME = f"{FIGURE_ID}_{FIGURE_NAME}_first_forecast_month_lead1-12"
 FIGURE_DPI = 600
 OUTPUT_FORMATS = ("png", "pdf")
 

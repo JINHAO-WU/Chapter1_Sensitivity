@@ -36,7 +36,10 @@ from plot_style import (
 # =============================================================================
 
 BASE_YEAR = 1871
-OUTPUT_DIR = Path("target_type_figures")
+FIGURE_ROOT = Path("Figures")
+FIGURE_ID = "G"
+FIGURE_NAME = "enso_classification_metrics"
+OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 FIGURE_DPI = 600
 OUTPUT_FORMATS = ("png", "pdf")
 
@@ -374,7 +377,9 @@ def main() -> None:
 
     saved_paths = []
     for lead in common_leads:
-        output_base = OUTPUT_DIR / f"classification_type{N_TYPE}_{CLASS_METRIC}_all_sources_lead{lead}"
+        output_base = OUTPUT_DIR / (
+            f"{FIGURE_ID}_{FIGURE_NAME}_type{N_TYPE}_{CLASS_METRIC}_all_sources_lead{lead}"
+        )
         saved_paths.extend(
             plot_all_datasets_figure(dataset_results, lead, event_order, output_base)
         )

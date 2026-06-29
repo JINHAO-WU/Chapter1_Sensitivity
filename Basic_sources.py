@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pickle
 import re
-from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -17,69 +16,44 @@ _SOURCE_DEFINITIONS = [
     {
         "id": "source_1",
         "folder": "pickle_HamCNN_input6_var1_sst_NOAA",
-        "labels": {
-            "plain": "SST_NOAA",
-            "pretty": "SST (NOAA)",
-            "math": "SST_{NOAA}",
-        },
+        "label": "SST (NOAA)",
     },
     {
         "id": "source_2",
         "folder": "pickle_HamCNN_input6_var1_sst_HadI",
-        "labels": {
-            "plain": "SST_HadI",
-            "pretty": "SST (HadI)",
-            "math": "SST_{HadI}",
-        },
+        "label": "SST (HadI)",
     },
     {
         "id": "source_3",
         "folder": "pickle_HamCNN_input6_var1_sst_NOAA_PO",
-        "labels": {
-            "plain": "SST_NOAA_PO",
-            "pretty": "SST (NOAA, Pac)",
-            "math": "SST_{NOAA, Pac}",
-        },
+        "label": "SST (NOAA, Pac)",
     },
     {
         "id": "source_4",
         "folder": "pickle_HamCNN_input6_var2_sst_ohc300_NOAA",
-        "labels": {
-            "plain": "SST_OHC300_NOAA",
-            "pretty": "SST (NOAA)+OHC300",
-            "math": "SST_{NOAA} + OHC300_{SODA/ORAS5}",
-        },
+        "label": "SST (NOAA)+OHC300",
     },
     {
         "id": "source_5",
-        "folder": "pickle_HamCNN_input6_var1_sst_NOAA_5MIROC6",
-        "labels": {
-            "plain": "SST_NOAA_5MIROC6",
-            "pretty": "SST (NOAA+CMIP6(MIROC6))",
-            "math": "SST_{NOAA} + CMIP6(MIROC6)",
-        },
+        "folder": "pickle_HamCNN_input6_var1_sst_NOAA_10CMIP6",
+        "label": "SST (NOAA+10CMIP6)",
     },
 ]
 
-LABEL_STYLES = tuple(_SOURCE_DEFINITIONS[0]["labels"])
 
-
-def get_dl_sources(label_style: str = "plain", sample_size: int | None = None) -> list[dict]:
-    """Return independent DL source dictionaries with one of the shared label styles."""
-    if label_style not in LABEL_STYLES:
-        raise ValueError(f"Unknown label_style {label_style!r}; choose one of {LABEL_STYLES}.")
-
+def get_dl_sources(sample_size: int | None = None) -> list[dict]:
+    """Return independent DL source dictionaries with the shared display labels."""
     sources = []
     for definition in _SOURCE_DEFINITIONS:
         source = {
             "id": definition["id"],
-            "label": definition["labels"][label_style],
+            "label": definition["label"],
             "pickle_dir": PICKLE_BASE_DIR / definition["folder"],
         }
         if sample_size is not None:
             source["sample_size"] = int(sample_size)
         sources.append(source)
-    return deepcopy(sources)
+    return sources
 
 
 def validate_pickle_source_dirs(sources: list[dict]) -> None:

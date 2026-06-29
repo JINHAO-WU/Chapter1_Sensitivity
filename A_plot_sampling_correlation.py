@@ -45,7 +45,10 @@ from plot_style import (
 # User configuration
 # =============================================================================
 
-OUTPUT_DIR = Path(r"Sampling")
+FIGURE_ROOT = Path("Figures")
+FIGURE_ID = "A"
+FIGURE_NAME = "sampling_correlation"
+OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 FIGURE_DPI = 600
 PUB_FIG_WIDTH_MM = 183
 PUB_FIG_HEIGHT_MM = 240
@@ -53,7 +56,7 @@ COMPARISON_FIG_HEIGHT_MM = 180
 
 LEADS = [6]
 COMPARISON_LEAD = 6
-N_BOOTSTRAP = 5
+N_BOOTSTRAP = 5000
 ALPHA = 0.05
 RANDOM_SEED = 42
 
@@ -92,7 +95,7 @@ VALUE_OPTIONS = {
     "observed": ("observed_r", "observed"),
 }
 
-DATA_SOURCES = get_dl_sources(label_style="math", sample_size=50)
+DATA_SOURCES = get_dl_sources(sample_size=50)
 
 
 # =============================================================================
@@ -656,13 +659,13 @@ def main() -> None:
     reference_label = next(source["label"] for source in DATA_SOURCES if source["id"] == REFERENCE_DATASET_ID)
 
     figure1_path = OUTPUT_DIR / (
-        f"Figure_1_sampling_correlation_lines_{figure1_token}_lead{COMPARISON_LEAD}.png"
+        f"{FIGURE_ID}_{FIGURE_NAME}_figure1_lines_{figure1_token}_lead{COMPARISON_LEAD}.png"
     )
     small_multiples_path = OUTPUT_DIR / (
-        f"Figure_2_sampling_correlation_small_multiples_lead{lead_token}.png"
+        f"{FIGURE_ID}_{FIGURE_NAME}_figure2_small_multiples_lead{lead_token}.png"
     )
     difference_path = OUTPUT_DIR / (
-        f"Figure_3_sampling_correlation_difference_{difference_token}_vs_"
+        f"{FIGURE_ID}_{FIGURE_NAME}_figure3_difference_{difference_token}_vs_"
         f"{reference_label}_lead{COMPARISON_LEAD}.png"
     )
 

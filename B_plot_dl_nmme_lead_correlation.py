@@ -39,7 +39,10 @@ from plot_style import (
 # =============================================================================
 
 BASE_YEAR = 1871
-OUTPUT_DIR = Path("nmme_comparison_figures")
+FIGURE_ROOT = Path("Figures")
+FIGURE_ID = "B"
+FIGURE_NAME = "dl_nmme_lead_correlation"
+OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 FIGURE_DPI = 600
 OUTPUT_FORMATS = ("png", "pdf")
 MIN_SAMPLES = 3
@@ -278,7 +281,7 @@ for axis in axes:
     axis.legend(frameon=False, ncol=3, fontsize=LEGEND_SIZE, handlelength=2.1, columnspacing=1.1)
 
 axes[-1].set_xlabel("Forecast lead (months)", fontsize=AXIS_LABEL_SIZE)
-output_base = OUTPUT_DIR / "dl_nmme_lead_correlation"
+output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}"
 for output_format in OUTPUT_FORMATS:
     output_path = output_base.with_suffix(f".{output_format}")
     save_kwargs = {"bbox_inches": "tight"}
