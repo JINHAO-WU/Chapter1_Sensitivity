@@ -9,7 +9,7 @@
 /target_season_figures
 /target_type_figures
 /yearly_covariance_contribution_figures
-/Figures
+/Figures*/
 /__pycache__
 *.py[cod]
 /.pytest_cache

@@ -23,7 +23,8 @@ import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-from Basic_sources import (
+from A_basic_sources import (
+    FIGURE_ROOT,
     get_dl_sources,
     list_pickle_files_by_year,
     load_prediction_arrays,
@@ -45,7 +46,6 @@ from plot_style import (
 # User configuration
 # =============================================================================
 
-FIGURE_ROOT = Path("Figures")
 FIGURE_ID = "A"
 FIGURE_NAME = "sampling_correlation"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"

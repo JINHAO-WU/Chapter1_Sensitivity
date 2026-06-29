@@ -15,7 +15,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
-from Basic_sources import get_dl_sources, list_pickle_files_by_year, load_prediction_arrays
+from A_basic_sources import (
+    FIGURE_ROOT,
+    get_dl_sources,
+    list_pickle_files_by_year,
+    load_prediction_arrays,
+)
 from plot_style import (
     AXIS_LABEL_SIZE,
     LEGEND_SIZE,
@@ -34,7 +39,6 @@ from plot_style import (
 
 FIGURE_ID = "F"
 FIGURE_NAME = "enso_event_errors"
-FIGURE_ROOT = Path("Figures")
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 FIGURE_DPI = 300
 

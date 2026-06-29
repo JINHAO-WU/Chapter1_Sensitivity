@@ -16,7 +16,8 @@ import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
 
-from Basic_sources import (
+from A_basic_sources import (
+    FIGURE_ROOT,
     get_dl_sources,
     list_pickle_files,
     load_prediction_arrays,
@@ -44,7 +45,6 @@ LEAD = 6
 MIN_MONTHS = 3
 OBSERVATION_TOLERANCE = 1e-10
 
-FIGURE_ROOT = Path("Figures")
 FIGURE_ID = "I"
 FIGURE_NAME = "yearly_covariance_contribution"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"

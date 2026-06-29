@@ -16,7 +16,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from Basic_sources import (
+from A_basic_sources import (
+    FIGURE_ROOT,
     get_dl_sources,
     list_pickle_files,
     load_source_forecast_table,
@@ -39,7 +40,6 @@ from plot_style import (
 # =============================================================================
 
 BASE_YEAR = 1871
-FIGURE_ROOT = Path("Figures")
 FIGURE_ID = "B"
 FIGURE_NAME = "dl_nmme_lead_correlation"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"

@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from Basic_sources import get_dl_sources, load_source_forecast_table
+from A_basic_sources import FIGURE_ROOT, get_dl_sources, load_source_forecast_table
 from plot_style import AXIS_LABEL_SIZE, TITLE_SIZE, configure_publication_style, style_boxed_axes, validate_data_sources
 
 
@@ -29,7 +29,6 @@ from plot_style import AXIS_LABEL_SIZE, TITLE_SIZE, configure_publication_style,
 # =============================================================================
 
 BASE_YEAR = 1871
-FIGURE_ROOT = Path("Figures")
 FIGURE_ID = "C"
 FIGURE_NAME = "target_season_correlation"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"

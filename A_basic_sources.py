@@ -11,6 +11,7 @@ import pandas as pd
 
 
 PICKLE_BASE_DIR = Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File")
+FIGURE_ROOT = Path("Figures")
 
 _SOURCE_DEFINITIONS = [
     {

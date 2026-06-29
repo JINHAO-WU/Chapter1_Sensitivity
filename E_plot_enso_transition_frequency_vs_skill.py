@@ -21,7 +21,7 @@ import numpy as np
 from matplotlib.ticker import MaxNLocator
 from scipy import stats
 
-from Basic_sources import get_dl_sources, list_pickle_files
+from A_basic_sources import FIGURE_ROOT, get_dl_sources, list_pickle_files
 from plot_style import configure_publication_style as configure_shared_publication_style, style_boxed_axes, style_open_axes, validate_data_sources
 
 
@@ -29,7 +29,6 @@ from plot_style import configure_publication_style as configure_shared_publicati
 # User configuration
 # =============================================================================
 
-FIGURE_ROOT = Path("Figures")
 FIGURE_ID = "E"
 FIGURE_NAME = "enso_transition_frequency_vs_skill"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
@@ -62,7 +61,7 @@ TRANSITION_METHOD = "independent"
 #   "neutral_la_nina_neutral"
 #   "extreme_el_nino_neutral_extreme_el_nino"
 #   "extreme_la_nina_neutral_extreme_la_nina"
-TRANSITION_MODE = "neutral_la_nina_neutral"
+TRANSITION_MODE = "la_nina_neutral_la_nina"
 ACC_WARNING_TOLERANCE = 0.02
 
 SHOW_FIGURE = False

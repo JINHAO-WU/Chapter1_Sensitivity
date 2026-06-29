@@ -15,7 +15,13 @@ import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
 
-from Basic_sources import get_dl_sources, list_pickle_files, load_prediction_arrays, parse_start_year
+from A_basic_sources import (
+    FIGURE_ROOT,
+    get_dl_sources,
+    list_pickle_files,
+    load_prediction_arrays,
+    parse_start_year,
+)
 from plot_style import (
     AXIS_LABEL_SIZE,
     LEGEND_SIZE,
@@ -38,7 +44,6 @@ if hasattr(sys.stdout, "reconfigure"):
 INPUT_MONTHS = 6
 FORECAST_LEADS = np.arange(1, 19)
 BASE_YEAR = 1871
-FIGURE_ROOT = Path("Figures")
 FIGURE_ID = "D"
 FIGURE_NAME = "enso_phase_mean_bias"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"

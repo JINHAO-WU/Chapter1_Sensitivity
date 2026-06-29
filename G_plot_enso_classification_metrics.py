@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import confusion_matrix
 
-from Basic_sources import get_dl_sources, load_source_forecast_table
+from A_basic_sources import FIGURE_ROOT, get_dl_sources, load_source_forecast_table
 from plot_style import (
     AXIS_LABEL_SIZE,
     EVENT_COLORS,
@@ -36,7 +36,6 @@ from plot_style import (
 # =============================================================================
 
 BASE_YEAR = 1871
-FIGURE_ROOT = Path("Figures")
 FIGURE_ID = "G"
 FIGURE_NAME = "enso_classification_metrics"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"

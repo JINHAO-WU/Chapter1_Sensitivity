@@ -18,7 +18,8 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 
-from Basic_sources import (
+from A_basic_sources import (
+    FIGURE_ROOT,
     get_dl_sources,
     list_pickle_files,
     load_prediction_arrays,
@@ -47,7 +48,6 @@ MIN_SAMPLES = 3
 # Choose "standard_deviation" for Niño 3.4 spread in °C, or "variance" for °C².
 SPREAD_METRIC = "standard_deviation"
 
-FIGURE_ROOT = Path("Figures")
 FIGURE_ID = "H"
 FIGURE_NAME = "nino34_variance_seasonality"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
