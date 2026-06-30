@@ -24,7 +24,9 @@ from plot_style import (
     EVENT_COLORS,
     PANEL_LABEL_SIZE,
     TITLE_SIZE,
+    add_shared_axis_labels,
     configure_publication_style,
+    panel_title,
     style_boxed_axes,
     style_open_axes,
     validate_data_sources,
@@ -237,56 +239,65 @@ def plot_all_datasets_figure(
     event_order: list[str],
     output_base: Path,
 ) -> list[Path]:
-    """Create one compact 5-by-2 figure for all configured data sources."""
+    """Create one compact source-panel figure for all configured data sources."""
     figure = plt.figure(
         figsize=(PUB_FIG_WIDTH_MM / 25.4, PUB_FIG_HEIGHT_MM / 25.4),
         facecolor="white",
     )
-    grid = figure.add_gridspec(
-        len(dataset_results), 2,
-        width_ratios=[1.0, 1.08],
-        left=0.155, right=0.94, bottom=0.075, top=0.97,
-        wspace=0.12, hspace=0.28,
+    outer_grid = figure.add_gridspec(
+        5,
+        2,
+        left=0.145,
+        right=0.985,
+        bottom=0.095,
+        top=0.97,
+        wspace=0.16,
+        hspace=0.34,
     )
+    panel_specs = [
+        outer_grid[0, :],
+        *[outer_grid[row, column] for row in range(1, 5) for column in range(2)],
+    ]
     x_tick_labels = [event.replace("_", "\n") for event in event_order]
     y_tick_labels = [event.replace("_", " ") for event in event_order]
     metric_name = {"recall": "Recall", "precision": "Precision", "f1": "F1-score"}[CLASS_METRIC]
     x_positions = np.arange(len(event_order)) + 0.5
     image = None
-    figure.text(
-        0.155,
-        0.988,
-        f"Lead {lead}M",
-        ha="left",
-        va="top",
-        fontsize=PANEL_TITLE_FONT_SIZE,
-    )
+    tick_label_font_size = 6.5
+    value_font_size = 5.8
+    source_title_font_size = 7.0
+    score_title_font_size = 8.0
 
-    for row_index, result in enumerate(dataset_results):
+    for panel_index, (result, panel_spec) in enumerate(zip(dataset_results, panel_specs)):
         dataset_label = result["label"]
         metrics = result["metrics_by_lead"][lead]
         confusion = metrics["confusion"]
         class_scores = metrics["scores"]
-        panel_label = f"({chr(ord('a') + row_index)})"
-        show_shared_x_labels = row_index == len(dataset_results) - 1
-        panel_title = f"{panel_label} {dataset_label}"
+        show_shared_x_labels = panel_index >= 7
+        is_right_source_column = panel_index != 0 and (panel_index - 1) % 2 == 1
+        source_title = panel_title(chr(ord("a") + panel_index), dataset_label)
+        inner_grid = panel_spec.subgridspec(1, 2, width_ratios=[1.0, 1.08], wspace=0.18)
 
-        confusion_ax = figure.add_subplot(grid[row_index, 0])
-        score_ax = figure.add_subplot(grid[row_index, 1])
+        confusion_ax = figure.add_subplot(inner_grid[0, 0])
+        score_ax = figure.add_subplot(inner_grid[0, 1])
         image = confusion_ax.imshow(
             confusion, cmap="Blues", vmin=0.0, vmax=1.0,
             aspect="auto", interpolation="nearest",
         )
         confusion_ax.set_xticks(range(len(event_order)))
-        confusion_ax.set_xticklabels(x_tick_labels if show_shared_x_labels else [], fontsize=7.5)
-        confusion_ax.set_yticks(range(len(event_order)), y_tick_labels, fontsize=7.5)
+        confusion_ax.set_xticklabels(x_tick_labels if show_shared_x_labels else [], fontsize=tick_label_font_size)
+        confusion_ax.set_yticks(range(len(event_order)))
+        confusion_ax.set_yticklabels(
+            [] if is_right_source_column else y_tick_labels,
+            fontsize=tick_label_font_size,
+        )
         confusion_ax.tick_params(length=2.2, width=0.6, pad=1.5)
         if show_shared_x_labels:
             confusion_ax.set_xlabel("Predicted", fontsize=AXIS_LABEL_SIZE, labelpad=3)
-        confusion_ax.set_ylabel("Real", fontsize=AXIS_LABEL_SIZE, labelpad=3)
         confusion_ax.set_title(
-            panel_title,
-            fontsize=PANEL_TITLE_FONT_SIZE,
+            source_title,
+            loc="left",
+            fontsize=source_title_font_size,
             pad=4,
         )
         for matrix_row in range(confusion.shape[0]):
@@ -294,7 +305,7 @@ def plot_all_datasets_figure(
                 value = confusion[matrix_row, column_index]
                 confusion_ax.text(
                     column_index, matrix_row, f"{value:.2f}",
-                    ha="center", va="center", fontsize=8, fontweight="semibold",
+                    ha="center", va="center", fontsize=value_font_size, fontweight="semibold",
                     color="white" if value >= 0.55 else "#1A1A1A",
                 )
         style_boxed_axes(confusion_ax)
@@ -308,22 +319,31 @@ def plot_all_datasets_figure(
             label_y = 0.025 if np.isnan(value) or value == 0 else min(value + 0.035, 1.045)
             score_ax.text(
                 bar.get_x() + bar.get_width() / 2, label_y, label,
-                ha="center", va="bottom", fontsize=8, fontweight="semibold",
+                ha="center", va="bottom", fontsize=value_font_size, fontweight="semibold",
                 color="#666666" if np.isnan(value) else "#1A1A1A",
             )
         score_ax.set_xlim(0, len(event_order))
         score_ax.set_ylim(0, 1.08)
         score_ax.set_xticks(x_positions)
-        score_ax.set_xticklabels(x_tick_labels if show_shared_x_labels else [], fontsize=7.5)
+        score_ax.set_xticklabels(x_tick_labels if show_shared_x_labels else [], fontsize=tick_label_font_size)
         score_ax.set_yticks(np.arange(0, 1.01, 0.2))
-        score_ax.tick_params(axis="y", labelsize=8, length=2.2, width=0.6, pad=1.5)
+        score_ax.tick_params(
+            axis="y",
+            labelsize=tick_label_font_size,
+            length=2.2,
+            width=0.6,
+            pad=1.5,
+            labelleft=not is_right_source_column,
+        )
         score_ax.tick_params(axis="x", length=2.2, width=0.6, pad=1.5)
         score_ax.set_title(
-            f"{metric_name}", fontsize=PANEL_TITLE_FONT_SIZE, pad=4
+            f"{metric_name}", fontsize=score_title_font_size, pad=4
         )
         score_ax.grid(axis="y", color="#C9C9C9", linewidth=0.55, linestyle="--", alpha=0.65)
         score_ax.set_axisbelow(True)
         style_open_axes(score_ax)
+
+    add_shared_axis_labels(figure, ylabel="Real", ylabel_x=0.012, fontsize=AXIS_LABEL_SIZE)
 
     colorbar_ax = figure.add_axes([0.42, 0.025, 0.20, 0.012])
     colorbar = figure.colorbar(image, cax=colorbar_ax, orientation="horizontal")

@@ -22,7 +22,13 @@ from matplotlib.ticker import MaxNLocator
 from scipy import stats
 
 from A_basic_sources import FIGURE_ROOT, get_dl_sources, list_pickle_files
-from plot_style import configure_publication_style as configure_shared_publication_style, style_boxed_axes, style_open_axes, validate_data_sources
+from plot_style import (
+    add_shared_axis_labels,
+    configure_publication_style as configure_shared_publication_style,
+    style_boxed_axes,
+    style_open_axes,
+    validate_data_sources,
+)
 
 
 # =============================================================================
@@ -61,7 +67,7 @@ TRANSITION_METHOD = "independent"
 #   "neutral_la_nina_neutral"
 #   "extreme_el_nino_neutral_extreme_el_nino"
 #   "extreme_la_nina_neutral_extreme_la_nina"
-TRANSITION_MODE = "la_nina_neutral_la_nina"
+TRANSITION_MODE = "neutral_la_nina_neutral"
 ACC_WARNING_TOLERANCE = 0.02
 
 SHOW_FIGURE = False
@@ -517,21 +523,12 @@ def save_publication_figure(fig: plt.Figure, output_paths: list[Path]) -> None:
 
 
 def add_figure_header(fig: plt.Figure, title: str, show_highlight_note: bool) -> None:
-    """Add the shared title, mode, and optional highlighted-year note."""
-    fig.suptitle(title, fontsize=11, y=0.985)
-    fig.text(
-        0.5,
-        0.958,
-        f"Mode: {transition_mode_label()}",
-        ha="center",
-        va="center",
-        fontsize=8.5,
-    )
+    """Add optional highlighted-year note without an overall figure title."""
     if show_highlight_note and ANNOTATE_YEAR_RANGE is not None:
         start_year, end_year = ANNOTATE_YEAR_RANGE
         fig.text(
             0.5,
-            0.934,
+            0.965,
             f"Open red circles: {start_year}-{end_year}",
             ha="center",
             va="center",
@@ -544,6 +541,16 @@ def panel_title(dataset: str, panel_index: int) -> str:
     """Return a panel title with an attached panel identifier."""
     panel_label = chr(ord("a") + panel_index)
     return f"({panel_label}) {dataset}"
+
+
+def style_three_by_three_source_axes(axes: list[plt.Axes]) -> None:
+    """Hide repeated tick labels for the E figure 3-by-3 source layout."""
+    for panel_index, ax in enumerate(axes):
+        row_index, column_index = divmod(panel_index, 3)
+        if column_index != 0:
+            ax.tick_params(axis="y", labelleft=False)
+        if row_index != 2:
+            ax.tick_params(axis="x", labelbottom=False)
 
 
 def padded_limits(
@@ -701,28 +708,29 @@ def plot_transition_skill_relationship(points: list[WindowPoint]) -> None:
         raise ValueError("Need at least one valid year to draw the relationship plot.")
     x_limits, y_limits, x_ticks, y_ticks = global_skill_plot_axes(points)
 
-    fig_height = max(6.6, 1.55 * len(dataset_labels) + 1.25)
-    fig, axes = plt.subplots(
-        len(dataset_labels),
-        1,
+    fig_height = 7.6
+    fig, axes_array = plt.subplots(
+        3,
+        3,
         figsize=(PUB_FIG_WIDTH_IN, fig_height),
         sharex=True,
         sharey=True,
-        squeeze=False,
     )
+    axes = axes_array.ravel().tolist()
     fig.subplots_adjust(
-        left=0.14,
+        left=0.095,
         right=0.88,
-        bottom=0.075,
-        top=0.905,
-        hspace=0.23,
+        bottom=0.105,
+        top=0.90,
+        wspace=0.14,
+        hspace=0.38,
     )
 
     scatter = None
     for panel_index, dataset in enumerate(dataset_labels):
         dataset_points = points_for_dataset(points, dataset)
         scatter = plot_transition_skill_panel(
-            axes[panel_index, 0],
+            axes[panel_index],
             dataset_points,
             dataset,
             float(np.nanmin(valid_years)),
@@ -737,9 +745,9 @@ def plot_transition_skill_relationship(points: list[WindowPoint]) -> None:
     if scatter is not None:
         colorbar = fig.colorbar(
             scatter,
-            ax=axes[:, 0].tolist(),
-            fraction=0.025,
-            pad=0.025,
+            ax=axes,
+            fraction=0.022,
+            pad=0.018,
         )
         colorbar.set_label("Test-start year")
         style_boxed_axes(colorbar.ax)
@@ -750,13 +758,13 @@ def plot_transition_skill_relationship(points: list[WindowPoint]) -> None:
         else "ENSO Transition Frequency vs Forecast Skill"
     )
     add_figure_header(fig, title, show_highlight_note=True)
-    axes[-1, 0].set_xlabel(transition_axis_label())
-    fig.text(
-        0.07,
-        0.5,
-        f"ACC at lead {LEAD}",
-        va="center",
-        rotation="vertical",
+    style_three_by_three_source_axes(axes)
+    add_shared_axis_labels(
+        fig,
+        xlabel=transition_axis_label(),
+        ylabel=f"ACC at lead {LEAD}",
+        xlabel_y=0.045,
+        ylabel_x=0.032,
     )
 
     save_publication_figure(fig, make_output_paths("frequency_vs_skill"))
@@ -847,28 +855,29 @@ def plot_transition_frequency_over_time(points: list[WindowPoint]) -> None:
     freq_min = max(0.0, freq_min_raw - freq_padding)
     freq_max = min(1.0, freq_max_raw + freq_padding)
 
-    fig_height = max(5.8, 1.25 * len(dataset_labels) + 1.15)
-    fig, axes = plt.subplots(
-        len(dataset_labels),
-        1,
+    fig_height = 7.6
+    fig, axes_array = plt.subplots(
+        3,
+        3,
         figsize=(PUB_FIG_WIDTH_IN, fig_height),
         sharex=True,
         sharey=True,
-        squeeze=False,
     )
+    axes = axes_array.ravel().tolist()
     fig.subplots_adjust(
-        left=0.14,
+        left=0.095,
         right=0.88,
-        bottom=0.085,
-        top=0.925,
-        hspace=0.18,
+        bottom=0.105,
+        top=0.92,
+        wspace=0.14,
+        hspace=0.38,
     )
 
     scatter = None
     for panel_index, dataset in enumerate(dataset_labels):
         dataset_points = points_for_dataset(points, dataset)
         scatter = plot_transition_time_panel(
-            axes[panel_index, 0],
+            axes[panel_index],
             dataset_points,
             dataset,
             year_min,
@@ -881,9 +890,9 @@ def plot_transition_frequency_over_time(points: list[WindowPoint]) -> None:
     if scatter is not None:
         colorbar = fig.colorbar(
             scatter,
-            ax=axes[:, 0].tolist(),
-            fraction=0.025,
-            pad=0.025,
+            ax=axes,
+            fraction=0.022,
+            pad=0.018,
         )
         colorbar.set_label("Test-start year")
         style_boxed_axes(colorbar.ax)
@@ -894,13 +903,13 @@ def plot_transition_frequency_over_time(points: list[WindowPoint]) -> None:
         else f"ENSO Transition Frequency Over Time | Leading {LEAD}M"
     )
     add_figure_header(fig, title, show_highlight_note=False)
-    axes[-1, 0].set_xlabel("Test-start year")
-    fig.text(
-        0.07,
-        0.5,
-        transition_axis_label(),
-        va="center",
-        rotation="vertical",
+    style_three_by_three_source_axes(axes)
+    add_shared_axis_labels(
+        fig,
+        xlabel="Test-start year",
+        ylabel=transition_axis_label(),
+        xlabel_y=0.045,
+        ylabel_x=0.032,
     )
 
     save_publication_figure(fig, make_output_paths("frequency_over_time"))

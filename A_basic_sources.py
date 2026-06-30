@@ -11,7 +11,7 @@ import pandas as pd
 
 
 PICKLE_BASE_DIR = Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File")
-FIGURE_ROOT = Path("Figures")
+FIGURE_ROOT = Path("Figures_ALL")
 
 _SOURCE_DEFINITIONS = [
     {
@@ -22,12 +22,12 @@ _SOURCE_DEFINITIONS = [
     {
         "id": "source_2",
         "folder": "pickle_HamCNN_input6_var1_sst_HadI",
-        "label": "SST (HadI)",
+        "label": "SST (HadISST)",
     },
     {
         "id": "source_3",
         "folder": "pickle_HamCNN_input6_var1_sst_NOAA_PO",
-        "label": "SST (NOAA, Pac)",
+        "label": "SST (NOAA$_{\\mathrm{Pac}}$)",
     },
     {
         "id": "source_4",
@@ -36,11 +36,30 @@ _SOURCE_DEFINITIONS = [
     },
     {
         "id": "source_5",
+        "folder": "pickle_HamCNN_input6_var1_sst_10CMIP6",
+        "label": "SST (10CMIP6)",
+    },
+    {
+        "id": "source_6",
         "folder": "pickle_HamCNN_input6_var1_sst_NOAA_10CMIP6",
         "label": "SST (NOAA+10CMIP6)",
     },
+    {
+        "id": "source_7",
+        "folder": "pickle_HamCNN_input6_var1_sst_NOAA_20CMIP6",
+        "label": "SST (NOAA+20CMIP6)",
+    },
+    {
+        "id": "source_8",
+        "folder": "pickle_HamCNN_input6_var1_sst_NOAA_10MIROC6",
+        "label": "SST (NOAA+10MIROC6)",
+    },
+    {
+        "id": "source_9",
+        "folder": "pickle_HamCNN_input6_var1_sst_NOAA_10MIROC6_CanESM5",
+        "label": "SST (NOAA+10MIROC6+10CanESM5)",
+    },
 ]
-
 
 def get_dl_sources(sample_size: int | None = None) -> list[dict]:
     """Return independent DL source dictionaries with the shared display labels."""

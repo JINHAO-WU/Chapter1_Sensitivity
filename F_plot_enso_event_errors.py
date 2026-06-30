@@ -24,10 +24,11 @@ from A_basic_sources import (
 from plot_style import (
     AXIS_LABEL_SIZE,
     LEGEND_SIZE,
-    PANEL_LABEL_SIZE,
     TITLE_SIZE,
+    add_compact_figure_legend,
     configure_publication_style,
     dataset_color as shared_dataset_color,
+    panel_title,
     style_open_axes,
     validate_data_sources,
 )
@@ -393,7 +394,7 @@ def plot_amplitude_by_class(
     )
     axes = axes.ravel()
 
-    for ax, event_class in zip(axes, EVENT_CLASSES):
+    for panel_index, (ax, event_class) in enumerate(zip(axes, EVENT_CLASSES)):
         for source in data_sources:
             dataset_id = source["id"]
             label = source["label"]
@@ -412,7 +413,12 @@ def plot_amplitude_by_class(
             )
 
         ax.axhline(0, color="#555555", linewidth=0.8, linestyle=(0, (5, 4)))
-        ax.set_title(CLASS_TITLES[event_class], fontsize=TITLE_SIZE, fontweight="bold")
+        ax.set_title(
+            panel_title(chr(ord("a") + panel_index), CLASS_TITLES[event_class]),
+            loc="left",
+            fontsize=TITLE_SIZE,
+            fontweight="bold",
+        )
         ax.grid(True, axis="y", color="#d9d9d9", linewidth=0.7, linestyle=":")
         ax.grid(True, axis="x", color="#eeeeee", linewidth=0.5, linestyle=":")
         ax.tick_params(axis="both", direction="in", labelsize=8)
@@ -427,20 +433,16 @@ def plot_amplitude_by_class(
         Line2D([0], [0], color=dataset_color(source["id"]), linewidth=2.0, label=source["label"])
         for source in data_sources
     ]
-    fig.legend(
+    add_compact_figure_legend(
+        fig,
         handles=legend_handles,
-        loc="upper center",
-        ncol=min(len(legend_handles), 5),
-        frameon=False,
-        bbox_to_anchor=(0.5, 0.965),
+        ncol=4,
+        bbox_to_anchor=(0.5, 0.99),
         fontsize=LEGEND_SIZE,
+        columnspacing=0.9,
+        handlelength=1.8,
     )
-    fig.suptitle(
-        f"ENSO event amplitude underestimation by class (lead {lead_token()}M)",
-        fontsize=PANEL_LABEL_SIZE,
-        y=0.995,
-    )
-    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.93))
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.90))
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
 
@@ -461,7 +463,7 @@ def plot_peak_month_error(
     )
     axes = axes.ravel()
 
-    for ax, event_group in zip(axes, EVENT_GROUPS):
+    for panel_index, (ax, event_group) in enumerate(zip(axes, EVENT_GROUPS)):
         for source in data_sources:
             dataset_id = source["id"]
             label = source["label"]
@@ -475,7 +477,12 @@ def plot_peak_month_error(
             )
 
         ax.axhline(0, color="#555555", linewidth=0.8, linestyle=(0, (5, 4)))
-        ax.set_title(event_group, fontsize=TITLE_SIZE, fontweight="bold")
+        ax.set_title(
+            panel_title(chr(ord("a") + panel_index), event_group),
+            loc="left",
+            fontsize=TITLE_SIZE,
+            fontweight="bold",
+        )
         ax.grid(True, axis="y", color="#d9d9d9", linewidth=0.7, linestyle=":")
         ax.grid(True, axis="x", color="#eeeeee", linewidth=0.5, linestyle=":")
         ax.tick_params(axis="both", direction="in", labelsize=8)
@@ -489,20 +496,16 @@ def plot_peak_month_error(
         Line2D([0], [0], color=dataset_color(source["id"]), linewidth=2.0, label=source["label"])
         for source in data_sources
     ]
-    fig.legend(
+    add_compact_figure_legend(
+        fig,
         handles=legend_handles,
-        loc="upper center",
-        ncol=min(len(legend_handles), 5),
-        frameon=False,
-        bbox_to_anchor=(0.5, 0.965),
+        ncol=4,
+        bbox_to_anchor=(0.5, 1.0),
         fontsize=LEGEND_SIZE,
+        columnspacing=0.9,
+        handlelength=1.8,
     )
-    fig.suptitle(
-        f"ENSO event peak-month error by ENSO phase (lead {lead_token()}M)",
-        fontsize=PANEL_LABEL_SIZE,
-        y=0.995,
-    )
-    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.93))
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.88))
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
 

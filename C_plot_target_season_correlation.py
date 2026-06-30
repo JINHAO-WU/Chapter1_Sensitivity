@@ -21,7 +21,17 @@ import numpy as np
 import pandas as pd
 
 from A_basic_sources import FIGURE_ROOT, get_dl_sources, load_source_forecast_table
-from plot_style import AXIS_LABEL_SIZE, TITLE_SIZE, configure_publication_style, style_boxed_axes, validate_data_sources
+from plot_style import (
+    AXIS_LABEL_SIZE,
+    TITLE_SIZE,
+    add_shared_axis_labels,
+    configure_publication_style,
+    panel_title,
+    source_panel_grid_1_plus_8,
+    style_boxed_axes,
+    style_source_panel_axes,
+    validate_data_sources,
+)
 
 
 # =============================================================================
@@ -195,7 +205,7 @@ def draw_heatmap(
 ) -> mpl.image.AxesImage:
     """Draw one compact heatmap panel."""
     image = ax.imshow(matrix.values, cmap=cmap, norm=norm, aspect="auto", interpolation="nearest")
-    ax.set_title(f"({panel_label}) {title}", loc="left", fontsize=TITLE_SIZE, pad=4)
+    ax.set_title(panel_title(panel_label, title), loc="left", fontsize=TITLE_SIZE, pad=4)
     ax.set_xticks(np.arange(matrix.shape[1]))
     ax.set_yticks(np.arange(matrix.shape[0]))
     ax.set_xticklabels(matrix.columns, fontsize=7)
@@ -232,34 +242,22 @@ def plot_reference_delta_figure(results: list[dict], matrix_key: str, output_bas
     configure_publication_style()
 
     fig = plt.figure(figsize=(PUB_FIG_WIDTH_MM / 25.4, PUB_FIG_HEIGHT_MM / 25.4))
-    grid = fig.add_gridspec(
-        3,
-        2,
-        left=0.06,
+    axes_list = source_panel_grid_1_plus_8(
+        fig,
+        left=0.085,
         right=0.98,
-        bottom=0.105,
+        bottom=0.11,
         top=0.95,
-        wspace=0.08,
-        hspace=0.28,
+        wspace=0.12,
+        hspace=0.32,
     )
-    top_row = grid[0, :].get_position(fig)
-    panel_width = top_row.width * 0.54
-    panel_height = top_row.height * 0.92
-    panel_left = top_row.x0 + (top_row.width - panel_width) / 2
-    panel_bottom = top_row.y0 + (top_row.height - panel_height) / 2
-    axes = {
-        "a": fig.add_axes([panel_left, panel_bottom, panel_width, panel_height]),
-        "b": fig.add_subplot(grid[1, 0]),
-        "c": fig.add_subplot(grid[1, 1]),
-        "d": fig.add_subplot(grid[2, 0]),
-        "e": fig.add_subplot(grid[2, 1]),
-    }
+    panel_labels = [chr(ord("a") + index) for index in range(len(axes_list))]
 
     reference_norm = mpl.colors.Normalize(vmin=REFERENCE_VMIN, vmax=REFERENCE_VMAX)
     delta_norm = mpl.colors.TwoSlopeNorm(vmin=-delta_limit, vcenter=0.0, vmax=delta_limit)
 
     reference_image = draw_heatmap(
-        axes["a"],
+        axes_list[0],
         reference,
         "a",
         labels_by_id[REFERENCE_DATASET_ID],
@@ -268,11 +266,16 @@ def plot_reference_delta_figure(results: list[dict], matrix_key: str, output_bas
     )
 
     delta_image = None
-    for panel, dataset_id, delta in zip(["b", "c", "d", "e"], comparison_ids, delta_matrices):
+    for panel_label_value, ax, dataset_id, delta in zip(
+        panel_labels[1:],
+        axes_list[1:],
+        comparison_ids,
+        delta_matrices,
+    ):
         delta_image = draw_heatmap(
-            axes[panel],
+            ax,
             delta,
-            panel,
+            panel_label_value,
             f"{labels_by_id[dataset_id]} - {labels_by_id[REFERENCE_DATASET_ID]}",
             DELTA_CMAP,
             delta_norm,
@@ -290,17 +293,20 @@ def plot_reference_delta_figure(results: list[dict], matrix_key: str, output_bas
         x_label = "Target month"
         y_label = "First prediction month"
 
-    for panel, ax in axes.items():
-        if panel == "a":
-            ax.set_ylabel(y_label, fontsize=AXIS_LABEL_SIZE, labelpad=4)
-        elif panel in {"b", "d"}:
-            ax.set_ylabel(y_label, fontsize=AXIS_LABEL_SIZE, labelpad=4)
-        else:
-            ax.set_yticklabels([])
-        if panel in {"d", "e"}:
-            ax.set_xlabel(x_label, fontsize=AXIS_LABEL_SIZE, labelpad=4)
+    style_source_panel_axes(axes_list, has_reference_top=True)
+    add_shared_axis_labels(
+        fig,
+        xlabel=x_label,
+        ylabel=y_label,
+        xlabel_y=0.065,
+        ylabel_x=0.018,
+        fontsize=AXIS_LABEL_SIZE,
+    )
 
-    cax_reference = fig.add_axes([panel_left + panel_width + 0.012, panel_bottom, 0.015, panel_height])
+    reference_position = axes_list[0].get_position()
+    cax_reference = fig.add_axes(
+        [reference_position.x1 + 0.012, reference_position.y0, 0.015, reference_position.height]
+    )
     cbar_reference = fig.colorbar(reference_image, cax=cax_reference)
     cbar_reference.set_label("Pearson r", fontsize=7, labelpad=3)
     cbar_reference.ax.tick_params(labelsize=6.5, length=2, width=0.55, pad=1.8)

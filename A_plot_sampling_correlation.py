@@ -35,8 +35,13 @@ from plot_style import (
     LEGEND_SIZE,
     PANEL_LABEL_SIZE,
     TICK_LABEL_SIZE,
+    add_compact_figure_legend,
+    add_shared_axis_labels,
     configure_publication_style,
     dataset_color,
+    panel_title,
+    source_panel_grid_1_plus_8,
+    style_source_panel_axes,
     style_open_axes,
     validate_data_sources,
 )
@@ -95,7 +100,7 @@ VALUE_OPTIONS = {
     "observed": ("observed_r", "observed"),
 }
 
-DATA_SOURCES = get_dl_sources(sample_size=50)
+DATA_SOURCES = get_dl_sources(sample_size=60)
 
 
 # =============================================================================
@@ -252,7 +257,7 @@ def plot_overview_lines(
     years = np.array(sorted({result["year"] for result in results}))
     reference_source = next(source for source in data_sources if source["id"] == REFERENCE_DATASET_ID)
     comparison_sources = [source for source in data_sources if source["id"] != REFERENCE_DATASET_ID]
-    source_groups = [comparison_sources[:2], comparison_sources[2:4]]
+    source_groups = [comparison_sources[:4], comparison_sources[4:8]]
 
     values = np.array(
         [result[field] for result in results if result["lead"] == COMPARISON_LEAD],
@@ -290,7 +295,7 @@ def plot_overview_lines(
         left=0.105,
         right=0.985,
         bottom=0.09,
-        top=0.91,
+        top=0.82,
         hspace=0.12,
     )
     axes = np.atleast_1d(axes)
@@ -328,7 +333,7 @@ def plot_overview_lines(
 
         panel_letter = chr(ord("a") + panel_index)
         ax.set_title(
-            f"({panel_letter}) Leading {COMPARISON_LEAD}M",
+            panel_title(panel_letter, f"Leading {COMPARISON_LEAD}M"),
             loc="left",
             fontsize=PLOT_STYLE["panel_label_size"],
             fontweight="bold",
@@ -342,7 +347,6 @@ def plot_overview_lines(
             zorder=0,
         )
         ax.set_ylim(y_lower, y_upper)
-        ax.set_ylabel("Pearson r", fontsize=PLOT_STYLE["axis_label_size"])
         ax.grid(axis="y", color="#d9d9d9", linewidth=0.45, linestyle=":")
         ax.tick_params(axis="both", direction="in", labelsize=PLOT_STYLE["tick_label_size"])
         style_open_axes(ax)
@@ -350,7 +354,14 @@ def plot_overview_lines(
     tick_years = np.arange(years[0], years[-1] + 1, 10)
     axes[-1].set_xticks(tick_years)
     axes[-1].set_xlim(years[0], years[-1])
-    axes[-1].set_xlabel("First test data year", fontsize=PLOT_STYLE["axis_label_size"])
+    add_shared_axis_labels(
+        fig,
+        xlabel="First test data year",
+        ylabel="Pearson r",
+        xlabel_y=0.025,
+        ylabel_x=0.035,
+        fontsize=PLOT_STYLE["axis_label_size"],
+    )
 
     legend_handles = []
     legend_labels = []
@@ -366,20 +377,20 @@ def plot_overview_lines(
     )
     legend_labels.append("95% CI")
     
-    fig.legend(
+    add_compact_figure_legend(
+        fig,
         handles=legend_handles,
         labels=legend_labels,
-        loc="upper center",
-        ncol=3,
-        frameon=False,
-        bbox_to_anchor=(0.5, 0.995),
+        ncol=4,
+        bbox_to_anchor=(0.5, 0.985),
         fontsize=PLOT_STYLE["legend_size"],
-        columnspacing=1.1,
-        handlelength=2.4,
+        columnspacing=0.75,
+        handlelength=1.8,
+        labelspacing=0.25,
     )
 
-    fig.savefig(output_path.with_suffix(".png"), dpi=FIGURE_DPI, facecolor="white")
-    fig.savefig(output_path.with_suffix(".pdf"), facecolor="white")
+    fig.savefig(output_path.with_suffix(".png"), dpi=FIGURE_DPI, facecolor="white", bbox_inches="tight")
+    fig.savefig(output_path.with_suffix(".pdf"), facecolor="white", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -398,22 +409,17 @@ def plot_small_multiples(
     y_upper = 1.05
 
     fig_width = PUB_FIG_WIDTH_MM / 25.4
-    fig_height = max(PUB_FIG_HEIGHT_MM / 25.4, 1.1 + 1.9 * len(source_ids))
-    fig, axes = plt.subplots(
-        len(source_ids),
-        1,
-        figsize=(fig_width, fig_height),
-        sharex=True,
-        sharey=True,
-    )
-    fig.subplots_adjust(
-        left=0.105,
+    fig_height = max(PUB_FIG_HEIGHT_MM / 25.4, 11.0)
+    fig = plt.figure(figsize=(fig_width, fig_height))
+    axes = source_panel_grid_1_plus_8(
+        fig,
+        left=0.12,
         right=0.985,
-        bottom=0.10,
-        top=0.95,
-        hspace=0.16,
+        bottom=0.11,
+        top=0.90,
+        wspace=0.12,
+        hspace=0.38,
     )
-    axes = np.atleast_1d(axes)
 
     for panel_index, (ax, dataset_id) in enumerate(zip(axes, source_ids)):
         label = labels_by_id[dataset_id]
@@ -450,7 +456,7 @@ def plot_small_multiples(
         ax.set_ylim(y_lower, y_upper)
         ax.set_xlim(years[0], years[-1])
         ax.set_title(
-            f"({chr(ord('a') + panel_index)}) {label}",
+            panel_title(chr(ord("a") + panel_index), label),
             loc="left",
             fontsize=PLOT_STYLE["panel_label_size"],
             fontweight="bold",
@@ -461,11 +467,17 @@ def plot_small_multiples(
         style_open_axes(ax)
 
     tick_years = np.arange(years[0], years[-1] + 1, 10)
-    axes[-1].set_xticks(tick_years)
-    axes[-1].set_xlabel("First test data year", fontsize=PLOT_STYLE["axis_label_size"])
-
     for ax in axes:
-        ax.set_ylabel("Pearson r", fontsize=PLOT_STYLE["axis_label_size"])
+        ax.set_xticks(tick_years)
+    style_source_panel_axes(axes, has_reference_top=True)
+    add_shared_axis_labels(
+        fig,
+        xlabel="First test data year",
+        ylabel="Pearson r",
+        xlabel_y=0.045,
+        ylabel_x=0.02,
+        fontsize=PLOT_STYLE["axis_label_size"],
+    )
 
     legend_handles = []
     for lead_index, lead in enumerate(LEADS):
@@ -482,19 +494,19 @@ def plot_small_multiples(
     legend_handles.append(
         Patch(facecolor="#999999", alpha=0.14, edgecolor="none", label="95% CI")
     )
-    fig.legend(
+    add_compact_figure_legend(
+        fig,
         handles=legend_handles,
-        loc="upper center",
-        ncol=min(len(legend_handles), 6),
-        frameon=False,
-        bbox_to_anchor=(0.5, 0.985),
-        columnspacing=1.5,
-        handlelength=2.7,
+        ncol=min(len(legend_handles), 4),
+        bbox_to_anchor=(0.5, 0.975),
+        columnspacing=1.0,
+        handlelength=2.0,
+        labelspacing=0.25,
         fontsize=PLOT_STYLE["legend_size"],
     )
 
-    fig.savefig(output_path.with_suffix(".png"), dpi=FIGURE_DPI, facecolor="white")
-    fig.savefig(output_path.with_suffix(".pdf"), facecolor="white")
+    fig.savefig(output_path.with_suffix(".png"), dpi=FIGURE_DPI, facecolor="white", bbox_inches="tight")
+    fig.savefig(output_path.with_suffix(".pdf"), facecolor="white", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -520,7 +532,6 @@ def plot_difference(
     all_differences: list[np.ndarray] = []
     difference_data: dict[str, tuple[np.ndarray, np.ndarray]] = {}
     comparison_sources = [source for source in data_sources if source["id"] != REFERENCE_DATASET_ID]
-    source_groups = [comparison_sources[:2], comparison_sources[2:4]]
 
     ref_years, ref_values = values_for(results, REFERENCE_DATASET_ID, COMPARISON_LEAD, field)
     ref_by_year = {year: value for year, value in zip(ref_years, ref_values)}
@@ -549,36 +560,35 @@ def plot_difference(
     y_lower, y_upper = -y_limit, y_limit
 
     fig_width = PUB_FIG_WIDTH_MM / 25.4
-    fig_height = COMPARISON_FIG_HEIGHT_MM / 25.4
+    fig_height = max(COMPARISON_FIG_HEIGHT_MM / 25.4, 9.5)
     fig, axes = plt.subplots(
-        len(source_groups),
-        1,
+        4,
+        2,
         figsize=(fig_width, fig_height),
         sharex=True,
         sharey=True,
     )
     fig.subplots_adjust(
-        left=0.105,
+        left=0.12,
         right=0.985,
         bottom=0.09,
-        top=0.89,
-        hspace=0.12,
+        top=0.91,
+        wspace=0.18,
+        hspace=0.30,
     )
-    axes = np.atleast_1d(axes)
+    axes = np.ravel(axes)
 
-    for panel_index, (ax, source_group) in enumerate(zip(axes, source_groups)):
-        for source in source_group:
-            dataset_id = source["id"]
-            label = source["label"]
-            years, diffs = difference_data[dataset_id]
-            ax.plot(
-                years,
-                diffs,
-                color=dataset_color(dataset_id),
-                linestyle="-",
-                linewidth=PLOT_STYLE["comparison_line_width"],
-                label=label,
-            )
+    for panel_index, (ax, source) in enumerate(zip(axes, comparison_sources)):
+        dataset_id = source["id"]
+        years, diffs = difference_data[dataset_id]
+        ax.plot(
+            years,
+            diffs,
+            color=dataset_color(dataset_id),
+            linestyle="-",
+            linewidth=PLOT_STYLE["comparison_line_width"],
+            label=source["label"],
+        )
 
         ax.axhline(
             0,
@@ -586,49 +596,39 @@ def plot_difference(
             linewidth=PLOT_STYLE["reference_line_width"],
             linestyle="--",
             zorder=0,
-            label=f"{labels_by_id[REFERENCE_DATASET_ID]} (reference)",
         )
         ax.set_ylim(y_lower, y_upper)
         ax.set_title(
-            f"({chr(ord('a') + panel_index)}) Leading {COMPARISON_LEAD}M",
+            panel_title(
+                chr(ord("a") + panel_index),
+                f"{source['label']} - {labels_by_id[REFERENCE_DATASET_ID]}",
+            ),
             loc="left",
             fontsize=PLOT_STYLE["panel_label_size"],
             fontweight="bold",
             pad=6,
         )
-        ax.set_ylabel("Delta Pearson r", fontsize=PLOT_STYLE["axis_label_size"])
         ax.grid(axis="y", color="#d9d9d9", linewidth=0.45, linestyle=":")
         ax.tick_params(axis="both", direction="in", labelsize=PLOT_STYLE["tick_label_size"])
         style_open_axes(ax)
 
     years = np.array(sorted({result["year"] for result in results}))
     tick_years = np.arange(years[0], years[-1] + 1, 10)
-    axes[-1].set_xticks(tick_years)
-    axes[-1].set_xlim(years[0], years[-1])
-    axes[-1].set_xlabel("First test data year", fontsize=PLOT_STYLE["axis_label_size"])
-
-    legend_handles = []
-    legend_labels = []
     for ax in axes:
-        handles, labels = ax.get_legend_handles_labels()
-        for handle, label in zip(handles, labels):
-            if label not in legend_labels:
-                legend_handles.append(handle)
-                legend_labels.append(label)
-    fig.legend(
-        handles=legend_handles,
-        labels=legend_labels,
-        loc="upper center",
-        ncol=3,
-        frameon=False,
-        bbox_to_anchor=(0.5, 0.995),
-        fontsize=PLOT_STYLE["legend_size"],
-        columnspacing=1.1,
-        handlelength=2.4,
+        ax.set_xticks(tick_years)
+        ax.set_xlim(years[0], years[-1])
+    style_source_panel_axes(axes.tolist(), has_reference_top=False)
+    add_shared_axis_labels(
+        fig,
+        xlabel="First test data year",
+        ylabel="Delta Pearson r",
+        xlabel_y=0.035,
+        ylabel_x=0.02,
+        fontsize=PLOT_STYLE["axis_label_size"],
     )
 
-    fig.savefig(output_path.with_suffix(".png"), dpi=FIGURE_DPI, facecolor="white")
-    fig.savefig(output_path.with_suffix(".pdf"), facecolor="white")
+    fig.savefig(output_path.with_suffix(".png"), dpi=FIGURE_DPI, facecolor="white", bbox_inches="tight")
+    fig.savefig(output_path.with_suffix(".pdf"), facecolor="white", bbox_inches="tight")
     plt.close(fig)
 
 

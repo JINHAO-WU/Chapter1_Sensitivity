@@ -29,7 +29,9 @@ from plot_style import (
     LEGEND_SIZE,
     NMME_COLORS,
     PANEL_LABEL_SIZE,
+    add_shared_axis_labels,
     configure_publication_style,
+    panel_title,
     style_open_axes,
     validate_data_sources,
 )
@@ -52,12 +54,24 @@ OUTPUT_BASENAME = f"{FIGURE_ID}_{FIGURE_NAME}_lead6"
 OUTPUT_FORMATS = ("png", "pdf")
 FIGURE_DPI = 600
 FIGURE_WIDTH_INCH = 7.2
-FIGURE_HEIGHT_INCH = 12.0
+FIGURE_HEIGHT_INCH = 8.2
 
 OBSERVATION_COLOR = "#000000"
 PREDICTION_COVARIANCE_COLOR = NMME_COLORS[3]
 
 DATA_SOURCES = get_dl_sources()
+
+
+def wrap_long_panel_label(label: str, max_length: int = 27) -> str:
+    """Wrap long source labels at plus signs so 3-by-3 titles stay inside panels."""
+    if len(label) <= max_length or "+" not in label:
+        return label
+    parts = label.split("+")
+    wrapped = parts[0]
+    for part in parts[1:]:
+        separator = "+\n" if len(wrapped.split("\n")[-1]) + len(part) + 1 > max_length else "+"
+        wrapped += separator + part
+    return wrapped
 
 
 def parse_pickle_metadata(pickle_path: Path) -> tuple[int, int]:
@@ -203,14 +217,32 @@ y_min, y_max = float(np.nanmin(all_contributions)), float(np.nanmax(all_contribu
 y_padding = max(0.001, 0.05 * (y_max - y_min))
 y_limits = (y_min - y_padding, y_max + y_padding)
 
-figure, axes = plt.subplots(
-    5,
-    1,
+def style_three_by_three_source_axes(axes: list[plt.Axes]) -> None:
+    """Hide repeated tick labels for a 3-by-3 source layout."""
+    for panel_index, axis in enumerate(axes):
+        row_index, column_index = divmod(panel_index, 3)
+        if column_index != 0:
+            axis.tick_params(axis="y", labelleft=False)
+        if row_index != 2:
+            axis.tick_params(axis="x", labelbottom=False)
+
+
+figure, axes_array = plt.subplots(
+    3,
+    3,
     figsize=(FIGURE_WIDTH_INCH, FIGURE_HEIGHT_INCH),
     sharex=True,
     sharey=True,
 )
-figure.subplots_adjust(left=0.14, right=0.98, bottom=0.09, top=0.97, hspace=0.34)
+axes = axes_array.ravel().tolist()
+figure.subplots_adjust(
+    left=0.12,
+    right=0.98,
+    bottom=0.165,
+    top=0.96,
+    wspace=0.12,
+    hspace=0.38,
+)
 
 for panel_index, (axis, result) in enumerate(zip(axes, results)):
     annual = result["annual"]
@@ -230,9 +262,9 @@ for panel_index, (axis, result) in enumerate(zip(axes, results)):
     )
     axis.axhline(0, color="0.70", linewidth=0.65, zorder=0)
     axis.set_title(
-        f"({chr(ord('a') + panel_index)}) {result['label']}",
+        panel_title(chr(ord("a") + panel_index), wrap_long_panel_label(result["label"])),
         loc="left",
-        fontsize=PANEL_LABEL_SIZE,
+        fontsize=7.6,
         fontweight="bold",
         pad=4,
     )
@@ -244,14 +276,21 @@ for panel_index, (axis, result) in enumerate(zip(axes, results)):
         transform=axis.transAxes,
         ha="right",
         va="top",
-        fontsize=LEGEND_SIZE,
+        fontsize=6.2,
     )
     axis.set_xlim(year_min, year_max)
     axis.set_ylim(*y_limits)
-    axis.set_ylabel("Annual covariance contribution", fontsize=AXIS_LABEL_SIZE)
-    if panel_index == len(results) - 1:
-        axis.set_xlabel("Verification year", fontsize=AXIS_LABEL_SIZE)
     style_open_axes(axis)
+
+style_three_by_three_source_axes(axes)
+add_shared_axis_labels(
+    figure,
+    xlabel="Verification year",
+    ylabel="Annual covariance contribution",
+    xlabel_y=0.105,
+    ylabel_x=0.025,
+    fontsize=AXIS_LABEL_SIZE,
+)
 
 figure.legend(
     handles=[
@@ -268,18 +307,19 @@ figure.legend(
     frameon=False,
     fontsize=LEGEND_SIZE,
     ncol=2,
-    bbox_to_anchor=(0.5, 0.005),
+    bbox_to_anchor=(0.5, 0.018),
 )
 figure.text(
     0.5,
-    0.04,
+    0.065,
     f"Lead {LEAD} months; duplicate target-month forecasts are ensemble averaged",
     ha="center",
     va="center",
     fontsize=LEGEND_SIZE,
 )
 for axis in axes:
-    axis.set_xticks(np.arange(((year_min + 19) // 20) * 20, year_max + 1, 20))
+    axis.set_xticks(np.arange(((year_min + 39) // 40) * 40, year_max + 1, 40))
+    axis.tick_params(axis="x", labelsize=7.0)
 
 output_base = OUTPUT_DIR / OUTPUT_BASENAME
 for output_format in OUTPUT_FORMATS:

@@ -27,6 +27,7 @@ from plot_style import (
     LEGEND_SIZE as SHARED_LEGEND_SIZE,
     PANEL_LABEL_SIZE,
     TICK_LABEL_SIZE as SHARED_TICK_LABEL_SIZE,
+    add_compact_figure_legend,
     configure_publication_style,
     dataset_color,
     nmme_color_mapping,
@@ -242,14 +243,14 @@ if CALCULATE_NMME:
         1,
         figsize=(FIGURE_WIDTH_INCH, FIGURE_HEIGHT_INCH),
         sharey=True,
-        constrained_layout=True,
+        constrained_layout=False,
     )
 else:
     figure, single_axis = plt.subplots(
         1,
         1,
         figsize=(FIGURE_WIDTH_INCH, SINGLE_PANEL_HEIGHT_INCH),
-        constrained_layout=True,
+        constrained_layout=False,
     )
     axes = np.asarray([single_axis])
 
@@ -267,7 +268,7 @@ if CALCULATE_NMME:
     axes[1].plot(mme_metrics["lead"], mme_metrics["r"], color=MME_COLOR, marker="o", markersize=4.5, linewidth=2.7, label=f"MME (n={len(nmme_metrics)})")
     axes[1].set_title("(b) Individual NMME models and MME", loc="left", fontsize=PANEL_LABEL_SIZE, fontweight="bold")
 else:
-    axes[0].set_title("DL forecasts from five data sources", loc="left", fontsize=PANEL_LABEL_SIZE, fontweight="bold")
+    axes[0].set_title("(a) DL forecasts from nine data sources", loc="left", fontsize=PANEL_LABEL_SIZE, fontweight="bold")
 
 for axis in axes:
     axis.axhline(0, color="0.75", linewidth=0.7, zorder=0)
@@ -278,9 +279,32 @@ for axis in axes:
     axis.set_ylabel("Pearson correlation coefficient", fontsize=AXIS_LABEL_SIZE)
     axis.tick_params(axis="both", labelsize=TICK_LABEL_SIZE)
     style_open_axes(axis)
-    axis.legend(frameon=False, ncol=3, fontsize=LEGEND_SIZE, handlelength=2.1, columnspacing=1.1)
 
 axes[-1].set_xlabel("Forecast lead (months)", fontsize=AXIS_LABEL_SIZE)
+handles, labels = axes[0].get_legend_handles_labels()
+add_compact_figure_legend(
+    figure,
+    handles=handles,
+    labels=labels,
+    ncol=4,
+    fontsize=LEGEND_SIZE,
+    handlelength=1.8,
+    columnspacing=0.75,
+    labelspacing=0.25,
+    bbox_to_anchor=(0.5, 0.985),
+)
+if CALCULATE_NMME:
+    axes[1].legend(
+        frameon=False,
+        ncol=4,
+        fontsize=LEGEND_SIZE,
+        handlelength=2.0,
+        columnspacing=0.9,
+        labelspacing=0.35,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.22),
+    )
+figure.subplots_adjust(left=0.12, right=0.98, bottom=0.15, top=0.80 if not CALCULATE_NMME else 0.82, hspace=0.34)
 output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}"
 for output_format in OUTPUT_FORMATS:
     output_path = output_base.with_suffix(f".{output_format}")

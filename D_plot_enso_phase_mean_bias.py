@@ -26,6 +26,7 @@ from plot_style import (
     AXIS_LABEL_SIZE,
     LEGEND_SIZE,
     PANEL_LABEL_SIZE,
+    add_compact_figure_legend,
     configure_publication_style,
     dataset_color,
     style_open_axes,
@@ -168,7 +169,7 @@ def main() -> None:
     y_padding = max(0.05, 0.08 * np.ptp(all_bias_values))
     y_limits = (all_bias_values.min() - y_padding, all_bias_values.max() + y_padding)
 
-    figure, axis = plt.subplots(figsize=(7.2, 5.6), dpi=FIGURE_DPI)
+    figure, axis = plt.subplots(figsize=(7.6, 5.8), dpi=FIGURE_DPI)
     for phase_name in ("El Niño", "La Niña"):
         for source in DATA_SOURCES:
             summary = phase_bias[source["id"]][phase_name]
@@ -188,7 +189,7 @@ def main() -> None:
         loc="left",
         fontsize=PANEL_LABEL_SIZE,
         fontweight="bold",
-        pad=62,
+        pad=6,
     )
     axis.set_ylabel("Mean bias (°C)", fontsize=AXIS_LABEL_SIZE)
     axis.set_xlabel("Forecast lead (months)", fontsize=AXIS_LABEL_SIZE)
@@ -214,17 +215,17 @@ def main() -> None:
         )
         for source in DATA_SOURCES
     ]
-    phase_legend = axis.legend(
-        handles=phase_handles, loc="upper left", bbox_to_anchor=(0.0, 1.21),
-        frameon=False, ncol=2, fontsize=LEGEND_SIZE, handlelength=2.4,
+    add_compact_figure_legend(
+        figure,
+        handles=phase_handles + source_handles,
+        ncol=4,
+        bbox_to_anchor=(0.5, 0.985),
+        fontsize=LEGEND_SIZE,
+        handlelength=1.6,
+        columnspacing=0.65,
+        labelspacing=0.25,
     )
-    axis.add_artist(phase_legend)
-    axis.legend(
-        handles=source_handles, loc="upper right", bbox_to_anchor=(1.0, 1.21),
-        frameon=False, ncol=3, fontsize=LEGEND_SIZE, handlelength=2.4,
-        columnspacing=1.1,
-    )
-    figure.subplots_adjust(top=0.75, left=0.11, right=0.98, bottom=0.13)
+    figure.subplots_adjust(top=0.80, left=0.11, right=0.98, bottom=0.13)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}_by_lead"

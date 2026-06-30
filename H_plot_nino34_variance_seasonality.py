@@ -30,6 +30,7 @@ from plot_style import (
     AXIS_LABEL_SIZE,
     LEGEND_SIZE,
     TITLE_SIZE,
+    add_shared_axis_labels,
     configure_publication_style,
     style_open_axes,
     validate_data_sources,
@@ -57,7 +58,7 @@ OUTPUT_FORMATS = ("png", "pdf")
 
 # Double-column publication width.  The sixth panel holds the shared legend.
 FIGURE_WIDTH_INCH = 7.2
-FIGURE_HEIGHT_INCH = 8.0
+FIGURE_HEIGHT_INCH = 8.3
 OBSERVATION_COLOR = "#1A1A1A"
 FORECAST_LINE_WIDTH = 1.7
 OBSERVATION_LINE_WIDTH = 1.3
@@ -269,8 +270,8 @@ def draw_source_panel(
     )
     axis.set_xlim(1, 23)
     axis.set_xticks(extended_month_positions)
-    axis.set_xticklabels(EXTENDED_MONTH_LABELS)
-    axis.tick_params(axis="x", labelrotation=90)
+    axis.set_xticklabels(EXTENDED_MONTH_LABELS, fontsize=7.0)
+    axis.tick_params(axis="x", labelrotation=90, pad=1.5)
     style_open_axes(axis)
 
 
@@ -319,31 +320,76 @@ def draw_top_right_legend(axis: plt.Axes) -> None:
     )
 
 
+def style_three_by_three_source_axes(axes: list[plt.Axes]) -> None:
+    """Hide repeated tick labels for a 3-by-3 source layout."""
+    for panel_index, axis in enumerate(axes):
+        row_index, column_index = divmod(panel_index, 3)
+        if column_index != 0:
+            axis.tick_params(axis="y", labelleft=False)
+        if row_index != 2:
+            axis.tick_params(axis="x", labelbottom=False)
+
+
+def add_compact_top_legend(figure: plt.Figure) -> None:
+    """Add the H figure legend above the 3-by-3 panels."""
+    handles = [
+        Line2D([0], [0], color=OBSERVATION_COLOR, linewidth=OBSERVATION_LINE_WIDTH, label="Observed"),
+        *[
+            Line2D([0], [0], color=colour, linewidth=FORECAST_LINE_WIDTH, label=season)
+            for season, colour in SEASON_COLORS.items()
+        ],
+        *[
+            Line2D(
+                [0],
+                [0],
+                color="0.30",
+                marker=marker,
+                markerfacecolor="white",
+                markeredgewidth=0.9,
+                linewidth=0,
+                markersize=FORECAST_MARKER_SIZE,
+                label=label,
+            )
+            for marker, label in [
+                ("o", "Jan/Apr/Jul/Oct"),
+                ("s", "Feb/May/Aug/Nov"),
+                ("^", "Mar/Jun/Sep/Dec"),
+            ]
+        ],
+    ]
+    figure.legend(
+        handles=handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.985),
+        frameon=False,
+        fontsize=6.5,
+        ncol=4,
+        handlelength=1.8,
+        columnspacing=0.85,
+        handletextpad=0.4,
+        labelspacing=0.35,
+    )
+
+
 def plot_variance_seasonality(results: list[dict]) -> list[Path]:
-    """Create and save the 1+2+2 start-month variance figure."""
+    """Create and save the 3-by-3 start-month variance figure."""
     configure_publication_style()
-    figure = plt.figure(figsize=(FIGURE_WIDTH_INCH, FIGURE_HEIGHT_INCH))
-    grid = figure.add_gridspec(
+    figure, axes_array = plt.subplots(
         3,
-        2,
+        3,
+        figsize=(FIGURE_WIDTH_INCH, FIGURE_HEIGHT_INCH),
+        sharex=True,
+        sharey=True,
+    )
+    axes = axes_array.ravel().tolist()
+    figure.subplots_adjust(
         left=0.17,
         right=0.98,
-        bottom=0.13,
-        top=0.95,
-        wspace=0.22,
-        hspace=0.39,
+        bottom=0.115,
+        top=0.88,
+        wspace=0.12,
+        hspace=0.38,
     )
-    top_row = grid[0, :].get_position(figure)
-    top_width = top_row.width * 0.54
-    top_height = top_row.height
-    top_left = top_row.x0 + (top_row.width - top_width) / 2
-    axes = [
-        figure.add_axes([top_left, top_row.y0, top_width, top_height]),
-        figure.add_subplot(grid[1, 0]),
-        figure.add_subplot(grid[1, 1]),
-        figure.add_subplot(grid[2, 0]),
-        figure.add_subplot(grid[2, 1]),
-    ]
 
     start_month_styles = {
         first_forecast_month: {
@@ -363,15 +409,17 @@ def plot_variance_seasonality(results: list[dict]) -> list[Path]:
             chr(ord("a") + panel_index),
         )
 
-    legend_axis = figure.add_axes([top_left + top_width + 0.018, top_row.y0, 0.18, top_height])
-    draw_top_right_legend(legend_axis)
+    add_compact_top_legend(figure)
 
-    for axis in [axes[0], axes[1], axes[3]]:
-        axis.set_ylabel(spread_axis_label(), fontsize=AXIS_LABEL_SIZE, labelpad=5)
-    for axis in axes[:3]:
-        axis.tick_params(axis="x", labelbottom=False)
-    for axis in axes[3:]:
-        axis.set_xlabel("Forecast verification month", fontsize=AXIS_LABEL_SIZE)
+    style_three_by_three_source_axes(axes)
+    add_shared_axis_labels(
+        figure,
+        xlabel="Forecast verification month",
+        ylabel=spread_axis_label(),
+        xlabel_y=0.045,
+        ylabel_x=0.04,
+        fontsize=AXIS_LABEL_SIZE,
+    )
 
     all_variances = [
         result["observation_variance"].to_numpy(dtype=float)
