@@ -23,14 +23,15 @@ from A_basic_sources import (
     load_source_forecast_table,
 )
 from plot_style import (
-    AXIS_LABEL_SIZE as SHARED_AXIS_LABEL_SIZE,
-    LEGEND_SIZE as SHARED_LEGEND_SIZE,
+    AXIS_LABEL_SIZE,
+    LEGEND_SIZE,
     PANEL_LABEL_SIZE,
-    TICK_LABEL_SIZE as SHARED_TICK_LABEL_SIZE,
+    TICK_LABEL_SIZE,
     add_compact_figure_legend,
     configure_publication_style,
     dataset_color,
     nmme_color_mapping,
+    save_publication_figure,
     style_open_axes,
     validate_data_sources,
 )
@@ -51,13 +52,10 @@ MIN_SAMPLES = 3
 # Set False to skip all NMME/OIv2 reading and plot only the five DL sources.
 CALCULATE_NMME = False
 
-# Double-column publication layout (183 mm wide) with readable final-size text.
+# Double-column publication layout (183 mm wide).
 FIGURE_WIDTH_INCH = 7.2
 FIGURE_HEIGHT_INCH = 7.8
 SINGLE_PANEL_HEIGHT_INCH = 4.2
-AXIS_LABEL_SIZE = SHARED_AXIS_LABEL_SIZE
-TICK_LABEL_SIZE = SHARED_TICK_LABEL_SIZE
-LEGEND_SIZE = SHARED_LEGEND_SIZE
 
 DL_SOURCES = get_dl_sources()
 
@@ -108,8 +106,6 @@ dl_labels_by_id = {source["id"]: source["label"] for source in DL_SOURCES}
 
 for source in DL_SOURCES:
     source_id = source["id"]
-    source_label = source["label"]
-    pickle_files = list_pickle_files(source["pickle_dir"])
     dl_table = load_source_forecast_table(source, base_year=BASE_YEAR, value_names=("pred", "obs"))
     dl_monthly = (
         dl_table.groupby(["target_month", "lead"], as_index=False)[["pred", "obs"]]
@@ -126,7 +122,8 @@ for source in DL_SOURCES:
             correlation = float(group["pred"].corr(group["obs"]))
         rows.append({"lead": int(lead), "r": correlation, "n_samples": n_samples})
     dl_metrics[source_id] = pd.DataFrame(rows)
-    print(f"{source_label}: {len(pickle_files)} pickle files; {len(dl_monthly)} ensemble-mean monthly forecasts")
+    print(f"{source['label']}: {len(list_pickle_files(source['pickle_dir']))} pickle files; "
+          f"{len(dl_monthly)} ensemble-mean monthly forecasts")
 
 
 nmme_metrics: dict[str, pd.DataFrame] = {}
@@ -268,7 +265,7 @@ if CALCULATE_NMME:
     axes[1].plot(mme_metrics["lead"], mme_metrics["r"], color=MME_COLOR, marker="o", markersize=4.5, linewidth=2.7, label=f"MME (n={len(nmme_metrics)})")
     axes[1].set_title("(b) Individual NMME models and MME", loc="left", fontsize=PANEL_LABEL_SIZE, fontweight="bold")
 else:
-    axes[0].set_title("(a) DL forecasts from nine data sources", loc="left", fontsize=PANEL_LABEL_SIZE, fontweight="bold")
+    axes[0].set_title("(a) DL forecasts from ten data sources", loc="left", fontsize=PANEL_LABEL_SIZE, fontweight="bold")
 
 for axis in axes:
     axis.axhline(0, color="0.75", linewidth=0.7, zorder=0)
@@ -286,10 +283,10 @@ add_compact_figure_legend(
     figure,
     handles=handles,
     labels=labels,
-    ncol=3,
+    ncol=4,
     fontsize=LEGEND_SIZE,
     handlelength=1.45,
-    columnspacing=0.55,
+    columnspacing=0.48,
     labelspacing=0.28,
     bbox_to_anchor=(0.5, 1.045),
 )
@@ -304,13 +301,14 @@ if CALCULATE_NMME:
         loc="upper center",
         bbox_to_anchor=(0.5, 1.18),
     )
-figure.subplots_adjust(left=0.12, right=0.98, bottom=0.15, top=0.84 if not CALCULATE_NMME else 0.81, hspace=0.34)
+figure.subplots_adjust(left=0.12, right=0.98, bottom=0.15, top=0.80 if not CALCULATE_NMME else 0.77, hspace=0.34)
 output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}"
-for output_format in OUTPUT_FORMATS:
-    output_path = output_base.with_suffix(f".{output_format}")
-    save_kwargs = {"bbox_inches": "tight"}
-    if output_format == "png":
-        save_kwargs["dpi"] = FIGURE_DPI
-    figure.savefig(output_path, **save_kwargs)
+saved_paths = save_publication_figure(
+    figure,
+    [output_base.with_suffix(f".{output_format}") for output_format in OUTPUT_FORMATS],
+    dpi=FIGURE_DPI,
+    pad_inches=0.02,
+)
+for output_path in saved_paths:
     print(f"Saved figure: {output_path}")
 plt.close(figure)

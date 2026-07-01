@@ -59,6 +59,11 @@ _SOURCE_DEFINITIONS = [
         "folder": "pickle_HamCNN_input6_var1_sst_NOAA_10MIROC6_CanESM5",
         "label": "SST (NOAA+10MIROC6+10CanESM5)",
     },
+    {
+        "id": "source_10",
+        "folder": "pickle_HamCNN_input6_var1_sst_NOAA",
+        "label": "SST (NOAA; source10)",
+    },
 ]
 
 def get_dl_sources(sample_size: int | None = None) -> list[dict]:

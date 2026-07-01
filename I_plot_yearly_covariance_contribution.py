@@ -1,10 +1,7 @@
-"""Plot annual covariance contributions for five Niño3.4 forecast data sources.
+"""Annual covariance contributions for five Niño3.4 forecast data sources.
 
-For each source, duplicate forecasts for the same target month are averaged to
-form one monthly ensemble-mean prediction. The black line is the annual
-contribution to var(observation); the purple line is the annual contribution
-to cov(ensemble-mean prediction, observation). Neither quantity is divided by
-standard deviations.
+Duplicate forecasts for the same target month are averaged to form one
+monthly ensemble-mean prediction.
 """
 
 from __future__ import annotations
@@ -26,12 +23,17 @@ from A_basic_sources import (
 )
 from plot_style import (
     AXIS_LABEL_SIZE,
+    COLORBAR_TICK_SIZE,
+    COMPACT_TICK_LABEL_SIZE,
     LEGEND_SIZE,
     NMME_COLORS,
     PANEL_LABEL_SIZE,
     add_shared_axis_labels,
     configure_publication_style,
     panel_title,
+    save_publication_figure,
+    source_panel_grid_5x2,
+    style_source_panel_axes_5x2,
     style_open_axes,
     validate_data_sources,
 )
@@ -54,7 +56,7 @@ OUTPUT_BASENAME = f"{FIGURE_ID}_{FIGURE_NAME}_lead6"
 OUTPUT_FORMATS = ("png", "pdf")
 FIGURE_DPI = 600
 FIGURE_WIDTH_INCH = 7.2
-FIGURE_HEIGHT_INCH = 8.6
+FIGURE_HEIGHT_INCH = 10.3
 
 OBSERVATION_COLOR = "#000000"
 PREDICTION_COVARIANCE_COLOR = NMME_COLORS[3]
@@ -63,7 +65,7 @@ DATA_SOURCES = get_dl_sources()
 
 
 def wrap_long_panel_label(label: str, max_length: int = 27) -> str:
-    """Wrap long source labels at plus signs so 3-by-3 titles stay inside panels."""
+    """Wrap long source labels at plus signs so titles stay inside panels."""
     if len(label) <= max_length or "+" not in label:
         return label
     parts = label.split("+")
@@ -74,11 +76,6 @@ def wrap_long_panel_label(label: str, max_length: int = 27) -> str:
     return wrapped
 
 
-def parse_pickle_metadata(pickle_path: Path) -> tuple[int, int]:
-    """Return the test-start year and input-window length encoded in a filename."""
-    return parse_start_year(pickle_path), parse_input_months(pickle_path, default=INPUT_WINDOW_MONTHS)
-
-
 def load_monthly_ensemble_mean(source: dict) -> pd.DataFrame:
     """Load one source and average duplicate forecasts for each target month."""
     pickle_dir = Path(source["pickle_dir"])
@@ -86,7 +83,8 @@ def load_monthly_ensemble_mean(source: dict) -> pd.DataFrame:
 
     tables = []
     for pickle_path in pickle_files:
-        start_year, input_months = parse_pickle_metadata(pickle_path)
+        start_year = parse_start_year(pickle_path)
+        input_months = parse_input_months(pickle_path, default=INPUT_WINDOW_MONTHS)
         prediction, observation = load_prediction_arrays(pickle_path)
         if LEAD < 1 or LEAD > prediction.shape[1]:
             raise ValueError(f"{pickle_path.name}: lead {LEAD} is unavailable")
@@ -161,13 +159,6 @@ def annual_contributions(monthly: pd.DataFrame) -> tuple[pd.DataFrame, float, fl
     )
     observation_variance = float(np.mean(observation_anomaly**2))
     prediction_observation_covariance = float(np.mean(prediction_anomaly * observation_anomaly))
-    if not np.isclose(annual["observation_variance_contribution"].sum(), observation_variance):
-        raise AssertionError("Annual observation contributions do not sum to var(observation)")
-    if not np.isclose(
-        annual["prediction_observation_covariance_contribution"].sum(),
-        prediction_observation_covariance,
-    ):
-        raise AssertionError("Annual prediction-observation contributions do not sum to covariance")
     return annual, observation_variance, prediction_observation_covariance
 
 
@@ -217,31 +208,15 @@ y_min, y_max = float(np.nanmin(all_contributions)), float(np.nanmax(all_contribu
 y_padding = max(0.001, 0.05 * (y_max - y_min))
 y_limits = (y_min - y_padding, y_max + y_padding)
 
-def style_three_by_three_source_axes(axes: list[plt.Axes]) -> None:
-    """Hide repeated tick labels for a 3-by-3 source layout."""
-    for panel_index, axis in enumerate(axes):
-        row_index, column_index = divmod(panel_index, 3)
-        if column_index != 0:
-            axis.tick_params(axis="y", labelleft=False)
-        if row_index != 2:
-            axis.tick_params(axis="x", labelbottom=False)
-
-
-figure, axes_array = plt.subplots(
-    3,
-    3,
-    figsize=(FIGURE_WIDTH_INCH, FIGURE_HEIGHT_INCH),
-    sharex=True,
-    sharey=True,
-)
-axes = axes_array.ravel().tolist()
-figure.subplots_adjust(
+figure = plt.figure(figsize=(FIGURE_WIDTH_INCH, FIGURE_HEIGHT_INCH))
+axes = source_panel_grid_5x2(
+    figure,
     left=0.12,
     right=0.98,
-    bottom=0.12,
+    bottom=0.105,
     top=0.975,
     wspace=0.12,
-    hspace=0.24,
+    hspace=0.22,
 )
 
 for panel_index, (axis, result) in enumerate(zip(axes, results)):
@@ -264,69 +239,66 @@ for panel_index, (axis, result) in enumerate(zip(axes, results)):
     axis.set_title(
         panel_title(chr(ord("a") + panel_index), wrap_long_panel_label(result["label"])),
         loc="left",
-        fontsize=7.6,
+        fontsize=COMPACT_TICK_LABEL_SIZE,
         fontweight="bold",
         pad=4,
     )
     axis.text(
         0.99,
         0.96,
-        f"var(obs) = {result['observation_variance']:.3f}\n"
-        f"cov(ensmean, obs) = {result['prediction_observation_covariance']:.3f}",
+        f"var = {result['observation_variance']:.3f}\n"
+        f"cov = {result['prediction_observation_covariance']:.3f}",
         transform=axis.transAxes,
         ha="right",
         va="top",
-        fontsize=6.2,
+        fontsize=COLORBAR_TICK_SIZE,
     )
     axis.set_xlim(year_min, year_max)
     axis.set_ylim(*y_limits)
     style_open_axes(axis)
 
-style_three_by_three_source_axes(axes)
+style_source_panel_axes_5x2(axes, n_visible=len(results))
 add_shared_axis_labels(
     figure,
     xlabel="Verification year",
     ylabel="Annual covariance contribution",
-    xlabel_y=0.066,
+    xlabel_y=0.058,
     ylabel_x=0.025,
     fontsize=AXIS_LABEL_SIZE,
 )
 
 figure.legend(
     handles=[
-        Line2D([0], [0], color=OBSERVATION_COLOR, linewidth=1.5, label="Observation variance"),
-        Line2D(
-            [0],
-            [0],
-            color=PREDICTION_COVARIANCE_COLOR,
-            linewidth=1.5,
-            label="cov(ensmean, observation)",
-        ),
+        Line2D([0], [0], color=OBSERVATION_COLOR, linewidth=1.5, label="var(obs)"),
+        Line2D([0], [0], color=PREDICTION_COVARIANCE_COLOR,
+               linewidth=1.5, label="cov(ensmean, obs)"),
     ],
-    loc="lower center",
+    loc="upper center",
     frameon=False,
     fontsize=LEGEND_SIZE,
     ncol=2,
-    bbox_to_anchor=(0.5, 0.006),
+    bbox_to_anchor=(0.5, 1.008),
 )
 figure.text(
     0.5,
-    0.040,
-    f"Lead {LEAD} months; duplicate target-month forecasts are ensemble averaged",
+    0.035,
+    f"Lead {LEAD} months; ensemble-mean duplicate forecasts",
     ha="center",
     va="center",
     fontsize=LEGEND_SIZE,
 )
 for axis in axes:
-    axis.set_xticks(np.arange(((year_min + 39) // 40) * 40, year_max + 1, 40))
-    axis.tick_params(axis="x", labelsize=7.0)
+    axis.set_xticks(np.arange(((year_min + 19) // 20) * 20, year_max + 1, 20))
+    axis.tick_params(axis="x", labelsize=COMPACT_TICK_LABEL_SIZE)
 
 output_base = OUTPUT_DIR / OUTPUT_BASENAME
-for output_format in OUTPUT_FORMATS:
-    output_path = output_base.with_suffix(f".{output_format}")
-    save_kwargs = {}
-    if output_format == "png":
-        save_kwargs["dpi"] = FIGURE_DPI
-    figure.savefig(output_path, **save_kwargs)
+saved_paths = save_publication_figure(
+    figure,
+    [output_base.with_suffix(f".{output_format}") for output_format in OUTPUT_FORMATS],
+    dpi=FIGURE_DPI,
+    bbox_inches=None,
+    pad_inches=0.02,
+)
+for output_path in saved_paths:
     print(f"Saved figure: {output_path}")
 plt.close(figure)

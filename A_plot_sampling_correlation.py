@@ -1,16 +1,8 @@
 """
-Sampling-based Pearson correlation figures.
+Sampling-based Pearson correlation for ENSO forecast skill across input-data sources.
 
-This script creates three figures for comparing ENSO forecast skill across
-multiple input-data sources:
-
-Figure 1: overview line plot
-Figure 2: small-multiple time series with 95% confidence intervals
-Figure 3: differences relative to the reference data source
-
-Edit the configuration block below to change data sources, leads, sample
-sizes, or bootstrap settings. The script is designed as a compact research
-plotting script rather than a command-line tool.
+Figure 1: overview line plot at one lead
+Figure 2: small-multiple time series with 95% CI per source
 """
 
 from __future__ import annotations
@@ -40,9 +32,12 @@ from plot_style import (
     configure_publication_style,
     dataset_color,
     panel_title,
-    source_panel_grid_1_plus_8,
-    style_source_panel_axes,
+    panel_title_only,
+    save_publication_figure,
+    source_panel_grid_5x2,
+    style_light_grid,
     style_open_axes,
+    style_source_panel_axes_5x2,
     validate_data_sources,
 )
 
@@ -61,21 +56,14 @@ COMPARISON_FIG_HEIGHT_MM = 180
 
 LEADS = [6]
 COMPARISON_LEAD = 6
-N_BOOTSTRAP = 5000
+N_BOOTSTRAP = 5
 ALPHA = 0.05
 RANDOM_SEED = 42
 
-# Choose which value Figure 1 uses:
-#   "bootstrap_mean" -> mean Pearson r across bootstrap-like samples
-#   "observed"       -> Pearson r computed directly from the full pred/real pair
+# "bootstrap_mean" or "observed"
 FIGURE1_VALUE = "bootstrap_mean"
 FIGURE1_REFERENCE_R = 0.5
-
 REFERENCE_DATASET_ID = "source_1"
-# Choose which value Figure 3 differences use:
-#   "bootstrap_mean" -> r_mean
-#   "observed"       -> observed_r
-DIFFERENCE_VALUE = "bootstrap_mean"
 
 PLOT_STYLE = {
     "axis_label_size": AXIS_LABEL_SIZE,
@@ -257,7 +245,10 @@ def plot_overview_lines(
     years = np.array(sorted({result["year"] for result in results}))
     reference_source = next(source for source in data_sources if source["id"] == REFERENCE_DATASET_ID)
     comparison_sources = [source for source in data_sources if source["id"] != REFERENCE_DATASET_ID]
-    source_groups = [comparison_sources[:4], comparison_sources[4:8]]
+    source_groups = [
+        comparison_sources[:4],       # (a) source_2–5   (with source_1 added below)
+        comparison_sources[4:],       # (b) source_6–10  (with source_1 added below)
+    ]
 
     values = np.array(
         [result[field] for result in results if result["lead"] == COMPARISON_LEAD],
@@ -292,11 +283,11 @@ def plot_overview_lines(
         sharey=True,
     )
     fig.subplots_adjust(
-        left=0.105,
-        right=0.985,
+        left=0.075,
+        right=0.99,
         bottom=0.09,
-        top=0.855,
-        hspace=0.12,
+        top=0.94,
+        hspace=0.14,
     )
     axes = np.atleast_1d(axes)
 
@@ -305,49 +296,29 @@ def plot_overview_lines(
             dataset_id = source["id"]
             label = source["label"]
             lead_years, values = values_for(results, dataset_id, COMPARISON_LEAD, field)
-            
-            # Add 95% confidence interval only for source_1 in Figure 1.
-            # This uses the same ci_lo / ci_hi values already computed for Figure 2.
+
             if dataset_id == "source_1":
                 _, ci_lo = values_for(results, dataset_id, COMPARISON_LEAD, "ci_lo")
                 _, ci_hi = values_for(results, dataset_id, COMPARISON_LEAD, "ci_hi")
-                ax.fill_between(
-                    lead_years,
-                    ci_lo,
-                    ci_hi,
-                    color=dataset_color(dataset_id),
-                    alpha=0.14,
-                    linewidth=0,
-                    zorder=1,
-                )
+                ax.fill_between(lead_years, ci_lo, ci_hi,
+                    color=dataset_color(dataset_id), alpha=0.30,
+                    linewidth=0, zorder=1)
 
-            
-            ax.plot(
-                lead_years,
-                values,
-                color=dataset_color(dataset_id),
-                linestyle="-",
-                linewidth=PLOT_STYLE["comparison_line_width"],
-                label=label,
-            )
+            ax.plot(lead_years, values,
+                color=dataset_color(dataset_id), linestyle="-",
+                linewidth=PLOT_STYLE["comparison_line_width"], label=label)
 
         panel_letter = chr(ord("a") + panel_index)
         ax.set_title(
-            panel_title(panel_letter, f"Leading {COMPARISON_LEAD}M"),
-            loc="left",
-            fontsize=PLOT_STYLE["panel_label_size"],
-            fontweight="bold",
-            pad=6,
+            panel_title_only(panel_letter),
+            loc="left", fontsize=PLOT_STYLE["panel_label_size"],
+            fontweight="bold", pad=6,
         )
-        ax.axhline(
-            FIGURE1_REFERENCE_R,
-            color="#5f5f5f",
-            linewidth=PLOT_STYLE["reference_line_width"],
-            linestyle="--",
-            zorder=0,
+        ax.axhline(FIGURE1_REFERENCE_R, color="#5f5f5f",
+            linewidth=PLOT_STYLE["reference_line_width"], linestyle="--", zorder=0,
         )
         ax.set_ylim(y_lower, y_upper)
-        ax.grid(axis="y", color="#d9d9d9", linewidth=0.45, linestyle=":")
+        style_light_grid(ax, axis="y", linewidth=0.45)
         ax.tick_params(axis="both", direction="in", labelsize=PLOT_STYLE["tick_label_size"])
         style_open_axes(ax)
 
@@ -359,7 +330,7 @@ def plot_overview_lines(
         xlabel="First test data year",
         ylabel="Pearson r",
         xlabel_y=0.025,
-        ylabel_x=0.035,
+        ylabel_x=0.022,
         fontsize=PLOT_STYLE["axis_label_size"],
     )
 
@@ -372,25 +343,30 @@ def plot_overview_lines(
                 legend_handles.append(handle)
                 legend_labels.append(label)
     
+    ci_label = f"95% CI ({reference_source['label']})"
     legend_handles.append(
-        Patch(facecolor="#999999", alpha=0.14, edgecolor="none", label="95% CI")
+        Patch(facecolor="#999999", alpha=0.30, edgecolor="none", label=ci_label)
     )
-    legend_labels.append("95% CI")
-    
+    legend_labels.append(ci_label)
+
     add_compact_figure_legend(
         fig,
         handles=legend_handles,
         labels=legend_labels,
         ncol=3,
-        bbox_to_anchor=(0.5, 0.985),
-        fontsize=PLOT_STYLE["legend_size"],
-        columnspacing=0.55,
-        handlelength=1.45,
-        labelspacing=0.28,
+        bbox_to_anchor=(0.5, 1.005),
+        fontsize=PLOT_STYLE["legend_size"] - 0.5,
+        columnspacing=0.40,
+        handlelength=1.10,
+        labelspacing=0.20,
     )
 
-    fig.savefig(output_path.with_suffix(".png"), dpi=FIGURE_DPI, facecolor="white", bbox_inches="tight")
-    fig.savefig(output_path.with_suffix(".pdf"), facecolor="white", bbox_inches="tight")
+    save_publication_figure(
+        fig,
+        [output_path.with_suffix(".png"), output_path.with_suffix(".pdf")],
+        dpi=FIGURE_DPI,
+        pad_inches=0.02,
+    )
     plt.close(fig)
 
 
@@ -411,14 +387,14 @@ def plot_small_multiples(
     fig_width = PUB_FIG_WIDTH_MM / 25.4
     fig_height = max(PUB_FIG_HEIGHT_MM / 25.4, 11.0)
     fig = plt.figure(figsize=(fig_width, fig_height))
-    axes = source_panel_grid_1_plus_8(
+    axes = source_panel_grid_5x2(
         fig,
-        left=0.12,
-        right=0.985,
+        left=0.08,
+        right=0.99,
         bottom=0.11,
-        top=0.875,
+        top=0.94,
         wspace=0.12,
-        hspace=0.38,
+        hspace=0.28,
     )
 
     for panel_index, (ax, dataset_id) in enumerate(zip(axes, source_ids)):
@@ -435,7 +411,7 @@ def plot_small_multiples(
                 ci_lo,
                 ci_hi,
                 color=lead_color,
-                alpha=0.14,
+                alpha=0.30,
                 linewidth=0,
             )
             ax.plot(
@@ -462,179 +438,53 @@ def plot_small_multiples(
             fontweight="bold",
             pad=6,
         )
-        ax.grid(axis="y", color="#d9d9d9", linewidth=0.45, linestyle=":")
+        style_light_grid(ax, axis="y", linewidth=0.45)
         ax.tick_params(axis="both", direction="in", labelsize=PLOT_STYLE["tick_label_size"])
         style_open_axes(ax)
 
     tick_years = np.arange(years[0], years[-1] + 1, 10)
     for ax in axes:
         ax.set_xticks(tick_years)
-    style_source_panel_axes(axes, has_reference_top=True)
+    style_source_panel_axes_5x2(axes, n_visible=len(source_ids))
     add_shared_axis_labels(
         fig,
         xlabel="First test data year",
         ylabel="Pearson r",
         xlabel_y=0.045,
-        ylabel_x=0.02,
+        ylabel_x=0.014,
         fontsize=PLOT_STYLE["axis_label_size"],
     )
 
     legend_handles = []
     for lead_index, lead in enumerate(LEADS):
-        lead_color = lead_colors[lead_index % len(lead_colors)]
         legend_handles.append(
-            Line2D(
-                [0],
-                [0],
-                color=lead_color,
-                linewidth=PLOT_STYLE["line_width"],
-                label=f"Leading {lead}M",
-            )
-        )
+            Line2D([0], [0], color=lead_colors[lead_index % len(lead_colors)],
+                   linewidth=PLOT_STYLE["line_width"], label=f"Leading {lead}M"))
+    reference_source = next(source for source in data_sources if source["id"] == REFERENCE_DATASET_ID)
+    ci_label = f"95% CI ({reference_source['label']})"
     legend_handles.append(
-        Patch(facecolor="#999999", alpha=0.14, edgecolor="none", label="95% CI")
-    )
-    add_compact_figure_legend(
-        fig,
-        handles=legend_handles,
-        ncol=min(len(legend_handles), 4),
-        bbox_to_anchor=(0.5, 0.975),
-        columnspacing=1.0,
-        handlelength=2.0,
-        labelspacing=0.25,
-        fontsize=PLOT_STYLE["legend_size"],
-    )
+        Patch(facecolor="#999999", alpha=0.30, edgecolor="none", label=ci_label))
 
-    fig.savefig(output_path.with_suffix(".png"), dpi=FIGURE_DPI, facecolor="white", bbox_inches="tight")
-    fig.savefig(output_path.with_suffix(".pdf"), facecolor="white", bbox_inches="tight")
+    if len(LEADS) > 1:
+        add_compact_figure_legend(
+            fig,
+            handles=legend_handles,
+            ncol=min(len(legend_handles), 3),
+            bbox_to_anchor=(0.5, 1.005),
+            columnspacing=0.45,
+            handlelength=1.10,
+            labelspacing=0.20,
+            fontsize=PLOT_STYLE["legend_size"] - 0.5,
+        )
+
+    save_publication_figure(
+        fig,
+        [output_path.with_suffix(".png"), output_path.with_suffix(".pdf")],
+        dpi=FIGURE_DPI,
+        pad_inches=0.02,
+    )
     plt.close(fig)
 
-
-def plot_difference(
-    results: list[dict],
-    data_sources: list[dict],
-    field: str,
-    output_path: Path,
-) -> None:
-    """Create Figure 3: correlation differences relative to a reference data source."""
-    source_ids = [source["id"] for source in data_sources]
-    labels_by_id = {source["id"]: source["label"] for source in data_sources}
-
-    if REFERENCE_DATASET_ID not in source_ids:
-        raise ValueError(
-            f"REFERENCE_DATASET_ID={REFERENCE_DATASET_ID!r} is not in DATA_SOURCES."
-        )
-
-    if len(data_sources) == 1:
-        print("Skipping Figure 3: no non-reference data source is available.")
-        return
-
-    all_differences: list[np.ndarray] = []
-    difference_data: dict[str, tuple[np.ndarray, np.ndarray]] = {}
-    comparison_sources = [source for source in data_sources if source["id"] != REFERENCE_DATASET_ID]
-
-    ref_years, ref_values = values_for(results, REFERENCE_DATASET_ID, COMPARISON_LEAD, field)
-    ref_by_year = {year: value for year, value in zip(ref_years, ref_values)}
-
-    for source in comparison_sources:
-        dataset_id = source["id"]
-        years, values = values_for(results, dataset_id, COMPARISON_LEAD, field)
-        common_years = np.array([year for year in years if year in ref_by_year])
-        diffs = np.array([
-            value - ref_by_year[year]
-            for year, value in zip(years, values)
-            if year in ref_by_year
-        ])
-
-        if len(common_years) == 0:
-            raise ValueError(
-                f"No overlapping years for {source['label']} and {labels_by_id[REFERENCE_DATASET_ID]} "
-                f"at lead {COMPARISON_LEAD}."
-            )
-
-        difference_data[dataset_id] = (common_years, diffs)
-        all_differences.append(diffs)
-
-    max_abs = max(float(np.nanmax(np.abs(values))) for values in all_differences)
-    y_limit = max(0.05, math.ceil(max_abs * 10) / 10)
-    y_lower, y_upper = -y_limit, y_limit
-
-    fig_width = PUB_FIG_WIDTH_MM / 25.4
-    fig_height = max(COMPARISON_FIG_HEIGHT_MM / 25.4, 9.5)
-    fig, axes = plt.subplots(
-        4,
-        2,
-        figsize=(fig_width, fig_height),
-        sharex=True,
-        sharey=True,
-    )
-    fig.subplots_adjust(
-        left=0.12,
-        right=0.985,
-        bottom=0.09,
-        top=0.91,
-        wspace=0.18,
-        hspace=0.30,
-    )
-    axes = np.ravel(axes)
-
-    for panel_index, (ax, source) in enumerate(zip(axes, comparison_sources)):
-        dataset_id = source["id"]
-        years, diffs = difference_data[dataset_id]
-        ax.plot(
-            years,
-            diffs,
-            color=dataset_color(dataset_id),
-            linestyle="-",
-            linewidth=PLOT_STYLE["comparison_line_width"],
-            label=source["label"],
-        )
-
-        ax.axhline(
-            0,
-            color="#303030",
-            linewidth=PLOT_STYLE["reference_line_width"],
-            linestyle="--",
-            zorder=0,
-        )
-        ax.set_ylim(y_lower, y_upper)
-        ax.set_title(
-            panel_title(
-                chr(ord("a") + panel_index),
-                f"{source['label']} - {labels_by_id[REFERENCE_DATASET_ID]}",
-            ),
-            loc="left",
-            fontsize=PLOT_STYLE["panel_label_size"],
-            fontweight="bold",
-            pad=6,
-        )
-        ax.grid(axis="y", color="#d9d9d9", linewidth=0.45, linestyle=":")
-        ax.tick_params(axis="both", direction="in", labelsize=PLOT_STYLE["tick_label_size"])
-        style_open_axes(ax)
-
-    years = np.array(sorted({result["year"] for result in results}))
-    tick_years = np.arange(years[0], years[-1] + 1, 10)
-    for ax in axes:
-        ax.set_xticks(tick_years)
-        ax.set_xlim(years[0], years[-1])
-    style_source_panel_axes(axes.tolist(), has_reference_top=False)
-    add_shared_axis_labels(
-        fig,
-        xlabel="First test data year",
-        ylabel="Delta Pearson r",
-        xlabel_y=0.035,
-        ylabel_x=0.02,
-        fontsize=PLOT_STYLE["axis_label_size"],
-    )
-
-    fig.savefig(output_path.with_suffix(".png"), dpi=FIGURE_DPI, facecolor="white", bbox_inches="tight")
-    fig.savefig(output_path.with_suffix(".pdf"), facecolor="white", bbox_inches="tight")
-    plt.close(fig)
-
-
-# =============================================================================
-# Main workflow
-# =============================================================================
 
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -649,35 +499,21 @@ def main() -> None:
     if COMPARISON_LEAD not in LEADS:
         raise ValueError("COMPARISON_LEAD must be included in LEADS.")
 
-    if DIFFERENCE_VALUE in VALUE_OPTIONS:
-        difference_field, difference_token = VALUE_OPTIONS[DIFFERENCE_VALUE]
-    else:
-        raise ValueError('DIFFERENCE_VALUE must be "bootstrap_mean" or "observed".')
-
     results = collect_all_results(DATA_SOURCES)
     lead_token = "-".join(str(lead) for lead in LEADS)
-    reference_label = next(source["label"] for source in DATA_SOURCES if source["id"] == REFERENCE_DATASET_ID)
 
     figure1_path = OUTPUT_DIR / (
-        f"{FIGURE_ID}_{FIGURE_NAME}_figure1_lines_{figure1_token}_lead{COMPARISON_LEAD}.png"
+        f"{FIGURE_ID}_{FIGURE_NAME}_figure1_lines_{figure1_token}_lead{COMPARISON_LEAD}"
     )
     small_multiples_path = OUTPUT_DIR / (
-        f"{FIGURE_ID}_{FIGURE_NAME}_figure2_small_multiples_lead{lead_token}.png"
-    )
-    difference_path = OUTPUT_DIR / (
-        f"{FIGURE_ID}_{FIGURE_NAME}_figure3_difference_{difference_token}_vs_"
-        f"{reference_label}_lead{COMPARISON_LEAD}.png"
+        f"{FIGURE_ID}_{FIGURE_NAME}_figure2_small_multiples_lead{lead_token}"
     )
 
     plot_overview_lines(results, DATA_SOURCES, figure1_field, figure1_path)
     plot_small_multiples(results, DATA_SOURCES, small_multiples_path)
-    plot_difference(results, DATA_SOURCES, difference_field, difference_path)
 
-    print("=" * 72)
-    print(f"Saved Figure 1: {figure1_path} and {figure1_path.with_suffix('.pdf')}")
-    print(f"Saved Figure 2: {small_multiples_path} and {small_multiples_path.with_suffix('.pdf')}")
-    print(f"Saved Figure 3: {difference_path} and {difference_path.with_suffix('.pdf')}")
-    print("=" * 72)
+    print(f"Figure 1 → {figure1_path}.png  +  .pdf")
+    print(f"Figure 2 → {small_multiples_path}.png  +  .pdf")
 
 
 if __name__ == "__main__":

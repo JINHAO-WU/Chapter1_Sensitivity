@@ -1,7 +1,7 @@
-"""Plot lead-dependent mean Niño3.4 bias for El Niño and La Niña months.
+"""Plot lead-dependent mean Nino3.4 bias for El Nino and La Nina months.
 
 For every data source, overlapping pickle test periods are first averaged by
-target month and forecast lead.  Bias is then calculated as prediction minus
+target month and forecast lead. Bias is then calculated as prediction minus
 observation and grouped using the observed Nino3.4 index.
 """
 
@@ -29,19 +29,18 @@ from plot_style import (
     add_compact_figure_legend,
     configure_publication_style,
     dataset_color,
+    save_publication_figure,
+    style_light_grid,
     style_open_axes,
     validate_data_sources,
 )
 
-
+# Ensure Unicode output on Windows.
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 
-# =============================================================================
 # User configuration
-# =============================================================================
-
 INPUT_MONTHS = 6
 FORECAST_LEADS = np.arange(1, 19)
 BASE_YEAR = 1871
@@ -52,17 +51,7 @@ OUTPUT_FORMATS = ("png", "pdf")
 FIGURE_DPI = 600
 RUN_SELF_TEST = True
 
-PHASE_STYLES = {
-    "El Niño": {"linestyle": "-", "marker": "o"},
-    "La Niña": {"linestyle": "--", "marker": "s"},
-}
-
 DATA_SOURCES = get_dl_sources()
-
-
-def start_year_from_name(pickle_path: Path) -> int:
-    """Return the test-set start year encoded in a pickle file name."""
-    return parse_start_year(pickle_path)
 
 
 def source_monthly_forecasts(source: dict) -> pd.DataFrame:
@@ -85,7 +74,7 @@ def source_monthly_forecasts(source: dict) -> pd.DataFrame:
                 f"lead {int(FORECAST_LEADS.max())} was requested."
             )
 
-        start_year = start_year_from_name(pickle_path)
+        start_year = parse_start_year(pickle_path)
         sample_index = np.arange(prediction.shape[0])[:, None]
         lead = FORECAST_LEADS[None, :]
         target_month = (
@@ -124,12 +113,15 @@ def run_self_tests() -> None:
     el_nino = test_rows[test_rows["observation"] >= 0.5]
     la_nina = test_rows[test_rows["observation"] <= -0.5]
 
-    if len(el_nino) != 1 or not np.isclose(el_nino["bias"].iloc[0], 0.5):
-        raise AssertionError("El Niño threshold, duplicate averaging, or bias sign is incorrect.")
-    if len(la_nina) != 1 or not np.isclose(la_nina["bias"].iloc[0], -0.2):
-        raise AssertionError("La Niña threshold or bias sign is incorrect.")
-    if test_rows[test_rows["observation"] >= 2.0].empty is False:
-        raise AssertionError("An absent ENSO phase should be represented by an empty selection.")
+    assert len(el_nino) == 1 and np.isclose(el_nino["bias"].iloc[0], 0.5), (
+        "El Nino threshold, duplicate averaging, or bias sign is incorrect."
+    )
+    assert len(la_nina) == 1 and np.isclose(la_nina["bias"].iloc[0], -0.2), (
+        "La Nina threshold or bias sign is incorrect."
+    )
+    assert test_rows[test_rows["observation"] >= 2.0].empty, (
+        "An absent ENSO phase should be represented by an empty selection."
+    )
 
 
 def main() -> None:
@@ -143,8 +135,8 @@ def main() -> None:
         monthly = source_monthly_forecasts(source)
         phase_bias[source["id"]] = {}
         for phase_name, selection in (
-            ("El Niño", monthly["observation"] >= 0.5),
-            ("La Niña", monthly["observation"] <= -0.5),
+            ("El Nino", monthly["observation"] >= 0.5),
+            ("La Nina", monthly["observation"] <= -0.5),
         ):
             summary = (
                 monthly.loc[selection]
@@ -154,89 +146,68 @@ def main() -> None:
                 .reindex(FORECAST_LEADS)
             )
             phase_bias[source["id"]][phase_name] = summary
-            print(f"\n{source['label']} — {phase_name}")
-            print(summary.to_string(float_format=lambda value: f"{value:.3f}"))
+            print(f"\n{source['label']} - {phase_name}")
+            print(summary.to_string(float_format=lambda v: f"{v:.3f}"))
+
+    PHASE_TITLES = {"El Nino": "El Niño", "La Nina": "La Niña"}
 
     all_bias_values = np.concatenate(
         [
             phase_bias[source["id"]][phase_name]["mean_bias"].dropna().to_numpy()
             for source in DATA_SOURCES
-            for phase_name in ("El Niño", "La Niña")
+            for phase_name in ("El Nino", "La Nina")
         ]
     )
     if not len(all_bias_values):
-        raise ValueError("No El Niño or La Niña forecast months were available.")
+        raise ValueError("No El Nino or La Nina forecast months were available.")
     y_padding = max(0.05, 0.08 * np.ptp(all_bias_values))
     y_limits = (all_bias_values.min() - y_padding, all_bias_values.max() + y_padding)
 
-    figure, axis = plt.subplots(figsize=(7.6, 5.8), dpi=FIGURE_DPI)
-    for phase_name in ("El Niño", "La Niña"):
+    fig, (ax_en, ax_ln) = plt.subplots(
+        1, 2, figsize=(13.5, 5.0), dpi=FIGURE_DPI, sharey=True,
+    )
+    for phase_name, ax in zip(("El Nino", "La Nina"), (ax_en, ax_ln)):
         for source in DATA_SOURCES:
             summary = phase_bias[source["id"]][phase_name]
-            phase_style = PHASE_STYLES[phase_name]
-            axis.plot(
-                FORECAST_LEADS,
-                summary["mean_bias"],
+            ax.plot(
+                FORECAST_LEADS, summary["mean_bias"],
                 color=dataset_color(source["id"]),
-                linestyle=phase_style["linestyle"],
-                marker=phase_style["marker"],
+                linewidth=1.8, marker="o" if phase_name == "El Nino" else "s",
                 markersize=3.5,
-                linewidth=1.8,
+                label=source["label"],
             )
-    axis.axhline(0, color="0.45", linewidth=0.9, linestyle="--", zorder=0)
-    axis.set_title(
-        "Mean Niño3.4 forecast bias (pred − obs)",
-        loc="left",
-        fontsize=PANEL_LABEL_SIZE,
-        fontweight="bold",
-        pad=6,
-    )
-    axis.set_ylabel("Mean bias (°C)", fontsize=AXIS_LABEL_SIZE)
-    axis.set_xlabel("Forecast lead (months)", fontsize=AXIS_LABEL_SIZE)
-    axis.set_xlim(0.5, int(FORECAST_LEADS.max()) + 0.5)
-    axis.set_ylim(*y_limits)
-    axis.set_xticks(FORECAST_LEADS)
-    axis.grid(True, axis="y", color="#d9d9d9", linewidth=0.6, linestyle=":")
-    style_open_axes(axis)
+        ax.axhline(0, color="0.45", linewidth=0.9, linestyle="--", zorder=0)
+        ax.set_title(
+            PHASE_TITLES[phase_name], loc="left",
+            fontsize=PANEL_LABEL_SIZE, fontweight="bold", pad=6,
+        )
+        ax.set_ylim(*y_limits)
+        ax.set_xlim(0.5, int(FORECAST_LEADS.max()) + 0.5)
+        ax.set_xticks(FORECAST_LEADS)
+        style_light_grid(ax, axis="y", linewidth=0.6)
+        style_open_axes(ax)
 
-    phase_handles = [
-        Line2D(
-            [0], [0], color="#444444", linewidth=1.8,
-            linestyle=PHASE_STYLES[phase_name]["linestyle"],
-            marker=PHASE_STYLES[phase_name]["marker"], markersize=4,
-            label=phase_name,
-        )
-        for phase_name in PHASE_STYLES
-    ]
-    source_handles = [
-        Line2D(
-            [0], [0], color=dataset_color(source["id"]), linewidth=2.0,
-            label=source["label"],
-        )
-        for source in DATA_SOURCES
-    ]
-    add_compact_figure_legend(
-        figure,
-        handles=phase_handles + source_handles,
-        ncol=3,
-        bbox_to_anchor=(0.5, 0.985),
-        fontsize=LEGEND_SIZE,
-        handlelength=1.35,
-        columnspacing=0.5,
-        labelspacing=0.28,
-    )
-    figure.subplots_adjust(top=0.82, left=0.11, right=0.98, bottom=0.13)
+    ax_en.set_ylabel("Mean bias (°C)", fontsize=AXIS_LABEL_SIZE)
+    for ax in (ax_en, ax_ln):
+        ax.set_xlabel("Forecast lead (months)", fontsize=AXIS_LABEL_SIZE)
+
+    handles = [Line2D([0], [0], color=dataset_color(s["id"]), linewidth=2.0, label=s["label"]) for s in DATA_SOURCES]
+    add_compact_figure_legend(fig, handles=handles, ncol=5, bbox_to_anchor=(0.5, 1.00),
+                              fontsize=LEGEND_SIZE, handlelength=1.35,
+                              columnspacing=0.40, labelspacing=0.25)
+    fig.subplots_adjust(top=0.83, left=0.08, right=0.99, bottom=0.14, wspace=0.10)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}_by_lead"
-    for output_format in OUTPUT_FORMATS:
-        output_path = output_base.with_suffix(f".{output_format}")
-        save_kwargs = {"bbox_inches": "tight"}
-        if output_format == "png":
-            save_kwargs["dpi"] = FIGURE_DPI
-        figure.savefig(output_path, **save_kwargs)
-        print(f"\nSaved figure: {output_path}")
-    plt.close(figure)
+    saved_paths = save_publication_figure(
+        fig,
+        [output_base.with_suffix(f".{fmt}") for fmt in OUTPUT_FORMATS],
+        dpi=FIGURE_DPI,
+        pad_inches=0.02,
+    )
+    for p in saved_paths:
+        print(f"\nSaved figure: {p}")
+    plt.close(fig)
 
 
 if __name__ == "__main__":

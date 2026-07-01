@@ -1,18 +1,13 @@
 """
 Confusion-matrix and class-metric figures for ENSO event forecasts.
 
-This script compares multiple input-data sources. It computes each metric from
-the full sample only; no leave-one-out event exclusion is used.
-
-Edit the configuration block below to change data sources, leads,
-classification type, or metric choices.
+All metrics use the full sample; no leave-one-out event exclusion.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -21,13 +16,22 @@ from sklearn.metrics import confusion_matrix
 from A_basic_sources import FIGURE_ROOT, get_dl_sources, load_source_forecast_table
 from plot_style import (
     AXIS_LABEL_SIZE,
+    COLORBAR_TICK_SIZE,
+    COMPACT_TICK_LABEL_SIZE,
+    COMPACT_TICK_LENGTH,
+    COMPACT_TICK_PAD,
+    COMPACT_TICK_WIDTH,
     EVENT_COLORS,
-    PANEL_LABEL_SIZE,
+    LEGEND_SIZE,
     TITLE_SIZE,
+    VALUE_LABEL_SIZE,
     add_shared_axis_labels,
     configure_publication_style,
+    disable_axis_grid,
     panel_title,
+    save_publication_figure,
     style_boxed_axes,
+    style_colorbar,
     style_open_axes,
     validate_data_sources,
 )
@@ -43,324 +47,203 @@ FIGURE_NAME = "enso_classification_metrics"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 FIGURE_DPI = 600
 OUTPUT_FORMATS = ("png", "pdf")
-
-# Double-column publication figure size.
 PUB_FIG_WIDTH_MM = 183
 PUB_FIG_HEIGHT_MM = 270
-PANEL_TITLE_FONT_SIZE = TITLE_SIZE
 
-# Set to None to use all leads available in the loaded pickle files.
-LEADS = [6]
-
-# Event classification type: 3, 5, or 7.
-N_TYPE = 5
-
-# Per-class metric: "recall", "precision", or "f1".
-CLASS_METRIC = "f1"
+LEADS = [6]             # None = use all available leads
+N_TYPE = 5              # 3, 5, or 7
+CLASS_METRIC = "f1"     # "recall", "precision", or "f1"
 
 DATA_SOURCES = get_dl_sources()
-    
-# Colorblind-friendly categories, ordered from strong El Niño to strong La Niña.
+
+# (order, thresholds): thresholds are (>= value, label) pairs checked top-down;
+# the last label is the fallback
+ENSO_CLASSIFIERS = {
+    3: (
+        ["EN", "N", "LN"],
+        [(0.5, "EN"), (-0.5, "N")],
+        "LN",
+    ),
+    5: (
+        ["Strong EN", "Weak EN", "N", "Weak LN", "Strong LN"],
+        [(1.5, "Strong EN"), (0.5, "Weak EN"), (-0.5, "N"), (-1.5, "Weak LN")],
+        "Strong LN",
+    ),
+    7: (
+        ["VStr EN", "Strong EN", "Weak EN", "N", "Weak LN", "Strong LN", "VStr LN"],
+        [(2.0, "VStr EN"), (1.5, "Strong EN"), (0.5, "Weak EN"),
+         (-0.5, "N"), (-1.5, "Weak LN"), (-2.0, "Strong LN")],
+        "VStr LN",
+    ),
+}
 
 
-# =============================================================================
-# Data loading
-# =============================================================================
-
-def load_all_predictions(folder: Path) -> pd.DataFrame:
-    """
-    Load all pickle files in one folder into a long-format prediction table.
-
-    Each row corresponds to one absolute target month and one leading month.
-    """
-    return load_source_forecast_table({"pickle_dir": Path(folder)}, base_year=BASE_YEAR)
+def classify_nino(value: float, n_type: int) -> str:
+    """Classify a Niño3.4 value using the configured threshold table."""
+    _, thresholds, fallback = ENSO_CLASSIFIERS[n_type]
+    for threshold, label in thresholds:
+        if value >= threshold:
+            return label
+    return fallback
 
 
-# =============================================================================
-# ENSO event classification
-# =============================================================================
-
-def classify_Niño_event_3type(Niño_value: float) -> str:
-    """Classify Niño3.4 value into El Niño, Neutral, or La Niña."""
-    if Niño_value >= 0.5:
-        return "El_Niño"
-    if Niño_value > -0.5:
-        return "Neutral"
-    return "La_Niña"
+def event_order(n_type: int) -> list[str]:
+    """Return the ordered event labels for the selected category count."""
+    return ENSO_CLASSIFIERS[n_type][0]
 
 
-def classify_Niño_event_5type(Niño_value: float) -> str:
-    """Classify Niño3.4 value into five ENSO intensity categories."""
-    if Niño_value >= 1.5:
-        return "Strong_El_Niño"
-    if Niño_value >= 0.5:
-        return "Weak_El_Niño"
-    if Niño_value >= -0.5:
-        return "Neutral"
-    if Niño_value >= -1.5:
-        return "Weak_La_Niña"
-    return "Strong_La_Niña"
+def wrap_long_label(label: str, max_len: int = 27) -> str:
+    """Wrap long source labels at plus signs so titles fit inside panels."""
+    if len(label) <= max_len or "+" not in label:
+        return label
+    parts = label.split("+")
+    wrapped = parts[0]
+    for part in parts[1:]:
+        sep = "+\n" if len(wrapped.split("\n")[-1]) + len(part) + 1 > max_len else "+"
+        wrapped += sep + part
+    return wrapped
 
 
-def classify_Niño_event_7type(Niño_value: float) -> str:
-    """Classify Niño3.4 value into seven ENSO intensity categories."""
-    if Niño_value >= 2:
-        return "Very_Strong_El_Niño"
-    if Niño_value >= 1.5:
-        return "Strong_El_Niño"
-    if Niño_value >= 0.5:
-        return "Weak_El_Niño"
-    if Niño_value >= -0.5:
-        return "Neutral"
-    if Niño_value >= -1.5:
-        return "Weak_La_Niña"
-    if Niño_value >= -2:
-        return "Strong_La_Niña"
-    return "Very_Strong_La_Niña"
+def _class_score(confusion: np.ndarray, metric: str) -> list[float]:
+    """Compute per-class precision / recall / F1 from a raw confusion matrix."""
+    scores = []
+    for i in range(confusion.shape[0]):
+        tp = confusion[i, i]
+        actual = confusion[i, :].sum()
+        predicted = confusion[:, i].sum()
+        prec = tp / predicted if predicted else 0.0
+        rec = tp / actual if actual else np.nan
+
+        if metric == "precision":
+            score = prec if actual else np.nan
+        elif metric == "recall":
+            score = rec
+        elif actual == 0:
+            score = np.nan
+        elif prec + rec == 0:
+            score = 0.0
+        else:
+            score = 2 * prec * rec / (prec + rec)
+        scores.append(float(score) if not np.isnan(score) else np.nan)
+    return scores
 
 
-def event_settings(n_type: int) -> tuple[list[str], callable]:
-    """Return event order and classifier for the selected category count."""
-    if n_type == 7:
-        return (
-            [
-                "Very_Strong_El_Niño",
-                "Strong_El_Niño",
-                "Weak_El_Niño",
-                "Neutral",
-                "Weak_La_Niña",
-                "Strong_La_Niña",
-                "Very_Strong_La_Niña",
-            ],
-            classify_Niño_event_7type,
-        )
-    if n_type == 5:
-        return (
-            [
-                "Strong_El_Niño",
-                "Weak_El_Niño",
-                "Neutral",
-                "Weak_La_Niña",
-                "Strong_La_Niña",
-            ],
-            classify_Niño_event_5type,
-        )
-    if n_type == 3:
-        return (["El_Niño", "Neutral", "La_Niña"], classify_Niño_event_3type)
-
-    raise ValueError("N_TYPE must be 3, 5, or 7.")
-
-
-# =============================================================================
-# Metric calculation
-# =============================================================================
-
-def normalize_requested_leads(df: pd.DataFrame, requested_leads: list[int] | None) -> list[int]:
-    """Return requested leads after checking that each exists in the data."""
-    available_leads = sorted(int(lead) for lead in df["leading"].unique())
-    if requested_leads is None:
-        return available_leads
-
-    missing = sorted(set(requested_leads) - set(available_leads))
+def compute_metrics(df: pd.DataFrame, n_type: int, metric: str, leads: list[int] | None) -> dict:
+    """Return {lead: {confusion, scores, n_samples}} for one data source."""
+    order = event_order(n_type)
+    available = sorted(int(l) for l in df["leading"].unique())
+    selected = available if leads is None else list(leads)
+    missing = sorted(set(selected) - set(available))
     if missing:
-        raise ValueError(
-            f"Requested leads {missing} are not available. "
-            f"Available leads: {available_leads}"
-        )
-    return list(requested_leads)
+        raise ValueError(f"Requested leads {missing} not available. Available: {available}")
 
-
-def calculate_confusion_metrics(
-    df: pd.DataFrame,
-    n_type: int,
-    class_metric: str = "recall",
-    leads: list[int] | None = None,
-) -> tuple[list[str], dict[int, dict[str, object]]]:
-    """Compute full-sample confusion matrices and class metrics for each lead."""
-    if class_metric not in {"recall", "precision", "f1"}:
-        raise ValueError('CLASS_METRIC must be "recall", "precision", or "f1".')
-
-    event_order, classify_fn = event_settings(n_type)
-    selected_leads = normalize_requested_leads(df, leads)
     results = {}
-    for leading in selected_leads:
+    for lead in selected:
         monthly = (
-            df.loc[df["leading"] == leading]
+            df.loc[df["leading"] == lead]
             .groupby("abs_month", as_index=False)[["pred", "real"]]
             .mean()
             .dropna(subset=["pred", "real"])
         )
-        monthly["real_class"] = monthly["real"].apply(classify_fn)
-        monthly["pred_class"] = monthly["pred"].apply(classify_fn)
+        monthly["real_class"] = monthly["real"].apply(lambda v: classify_nino(v, n_type))
+        monthly["pred_class"] = monthly["pred"].apply(lambda v: classify_nino(v, n_type))
 
-        raw_matrix = confusion_matrix(
-            monthly["real_class"], monthly["pred_class"], labels=event_order
-        )
-        normalized_matrix = confusion_matrix(
-            monthly["real_class"], monthly["pred_class"], labels=event_order, normalize="true"
-        )
-
-        class_scores = []
-        for index in range(len(event_order)):
-            true_positive = raw_matrix[index, index]
-            actual_count = raw_matrix[index, :].sum()
-            predicted_count = raw_matrix[:, index].sum()
-            precision = true_positive / predicted_count if predicted_count else 0.0
-            recall = true_positive / actual_count if actual_count else np.nan
-
-            if class_metric == "precision":
-                score = precision if actual_count else np.nan
-            elif class_metric == "recall":
-                score = recall
-            elif actual_count == 0:
-                score = np.nan
-            elif precision + recall == 0:
-                score = 0.0
-            else:
-                score = 2 * precision * recall / (precision + recall)
-            class_scores.append(float(score) if not np.isnan(score) else np.nan)
-
-        results[leading] = {
-            "confusion": np.nan_to_num(normalized_matrix, nan=0.0),
-            "scores": class_scores,
+        raw = confusion_matrix(monthly["real_class"], monthly["pred_class"], labels=order)
+        norm = confusion_matrix(monthly["real_class"], monthly["pred_class"], labels=order, normalize="true")
+        results[lead] = {
+            "confusion": np.nan_to_num(norm, nan=0.0),
+            "scores": _class_score(raw, metric),
             "n_samples": len(monthly),
         }
+    return results
 
-    return event_order, results
 
-
-# =============================================================================
-# Publication plotting and main workflow
-# =============================================================================
-
-def plot_all_datasets_figure(
-    dataset_results: list[dict],
-    lead: int,
-    event_order: list[str],
-    output_base: Path,
-) -> list[Path]:
-    """Create one compact source-panel figure for all configured data sources."""
-    figure = plt.figure(
+def plot_figure(dataset_results: list[dict], lead: int, order: list[str], output_base: Path) -> list[Path]:
+    """Create one multi-panel figure with confusion matrices and class-metric bars."""
+    fig = plt.figure(
         figsize=(PUB_FIG_WIDTH_MM / 25.4, PUB_FIG_HEIGHT_MM / 25.4),
         facecolor="white",
     )
-    outer_grid = figure.add_gridspec(
-        5,
-        2,
-        left=0.145,
-        right=0.985,
-        bottom=0.075,
-        top=0.985,
-        wspace=0.12,
-        hspace=0.24,
-    )
-    panel_specs = [
-        outer_grid[0, :],
-        *[outer_grid[row, column] for row in range(1, 5) for column in range(2)],
-    ]
-    x_tick_labels = [event.replace("_", "\n") for event in event_order]
-    y_tick_labels = [event.replace("_", " ") for event in event_order]
-    metric_name = {"recall": "Recall", "precision": "Precision", "f1": "F1-score"}[CLASS_METRIC]
-    x_positions = np.arange(len(event_order)) + 0.5
+    outer = fig.add_gridspec(5, 2, left=0.145, right=0.985, bottom=0.075, top=0.985,
+                             wspace=0.12, hspace=0.18)
+    panels = [outer[r, c] for r in range(5) for c in range(2)]
+
+    x_labels = [e.replace(" ", "\n") for e in order]
+    y_labels = [e for e in order]
+    metric_label = {"recall": "Recall", "precision": "Precision", "f1": "F1-score"}[CLASS_METRIC]
+    x_pos = np.arange(len(order)) + 0.5
     image = None
-    tick_label_font_size = 6.5
-    value_font_size = 5.8
-    source_title_font_size = 7.0
-    score_title_font_size = 8.0
 
-    for panel_index, (result, panel_spec) in enumerate(zip(dataset_results, panel_specs)):
-        dataset_label = result["label"]
+    for i, (result, panel_spec) in enumerate(zip(dataset_results, panels)):
         metrics = result["metrics_by_lead"][lead]
-        confusion = metrics["confusion"]
-        class_scores = metrics["scores"]
-        show_shared_x_labels = panel_index >= 7
-        is_right_source_column = panel_index != 0 and (panel_index - 1) % 2 == 1
-        source_title = panel_title(chr(ord("a") + panel_index), dataset_label)
-        inner_grid = panel_spec.subgridspec(1, 2, width_ratios=[1.0, 1.08], wspace=0.12)
+        cm = metrics["confusion"]
+        scores = metrics["scores"]
+        bottom_row = i >= 8
+        right_col = i % 2 == 1
+        title = panel_title(chr(ord("a") + i), wrap_long_label(result["label"]))
+        inner = panel_spec.subgridspec(1, 2, width_ratios=[1.0, 1.08], wspace=0.12)
 
-        confusion_ax = figure.add_subplot(inner_grid[0, 0])
-        score_ax = figure.add_subplot(inner_grid[0, 1])
-        image = confusion_ax.imshow(
-            confusion, cmap="Blues", vmin=0.0, vmax=1.0,
-            aspect="auto", interpolation="nearest",
-        )
-        confusion_ax.set_xticks(range(len(event_order)))
-        confusion_ax.set_xticklabels(x_tick_labels if show_shared_x_labels else [], fontsize=tick_label_font_size)
-        confusion_ax.set_yticks(range(len(event_order)))
-        confusion_ax.set_yticklabels(
-            [] if is_right_source_column else y_tick_labels,
-            fontsize=tick_label_font_size,
-        )
-        confusion_ax.tick_params(length=2.2, width=0.6, pad=1.5)
-        if show_shared_x_labels:
-            confusion_ax.set_xlabel("Predicted", fontsize=AXIS_LABEL_SIZE, labelpad=3)
-        confusion_ax.set_title(
-            source_title,
-            loc="left",
-            fontsize=source_title_font_size,
-            pad=2,
-        )
-        for matrix_row in range(confusion.shape[0]):
-            for column_index in range(confusion.shape[1]):
-                value = confusion[matrix_row, column_index]
-                confusion_ax.text(
-                    column_index, matrix_row, f"{value:.2f}",
-                    ha="center", va="center", fontsize=value_font_size, fontweight="semibold",
-                    color="white" if value >= 0.55 else "#1A1A1A",
-                )
-        style_boxed_axes(confusion_ax)
+        ax_cm = fig.add_subplot(inner[0, 0])
+        ax_bar = fig.add_subplot(inner[0, 1])
 
-        bars = score_ax.bar(
-            x_positions, class_scores, width=0.74,
-            color=EVENT_COLORS[: len(event_order)], edgecolor="#333333", linewidth=0.7,
-        )
-        for bar, value in zip(bars, class_scores):
-            label = "NA" if np.isnan(value) else f"{value:.3f}"
-            label_y = 0.025 if np.isnan(value) or value == 0 else min(value + 0.035, 1.045)
-            score_ax.text(
-                bar.get_x() + bar.get_width() / 2, label_y, label,
-                ha="center", va="bottom", fontsize=value_font_size, fontweight="semibold",
-                color="#666666" if np.isnan(value) else "#1A1A1A",
-            )
-        score_ax.set_xlim(0, len(event_order))
-        score_ax.set_ylim(0, 1.08)
-        score_ax.set_xticks(x_positions)
-        score_ax.set_xticklabels(x_tick_labels if show_shared_x_labels else [], fontsize=tick_label_font_size)
-        score_ax.set_yticks(np.arange(0, 1.01, 0.2))
-        score_ax.tick_params(
-            axis="y",
-            labelsize=tick_label_font_size,
-            length=2.2,
-            width=0.6,
-            pad=1.5,
-            labelleft=not is_right_source_column,
-        )
-        score_ax.tick_params(axis="x", length=2.2, width=0.6, pad=1.5)
-        score_ax.set_title(
-            f"{metric_name}", fontsize=score_title_font_size, pad=2
-        )
-        score_ax.grid(axis="y", color="#C9C9C9", linewidth=0.55, linestyle="--", alpha=0.65)
-        score_ax.set_axisbelow(True)
-        style_open_axes(score_ax)
+        image = ax_cm.imshow(cm, cmap="Blues", vmin=0.0, vmax=1.0, aspect="auto", interpolation="nearest")
+        ax_cm.set_xticks(range(len(order)))
+        ax_cm.set_xticklabels(x_labels if bottom_row else [], fontsize=COLORBAR_TICK_SIZE)
+        ax_cm.set_yticks(range(len(order)))
+        ax_cm.set_yticklabels([] if right_col else y_labels, fontsize=COLORBAR_TICK_SIZE)
+        ax_cm.tick_params(length=COMPACT_TICK_LENGTH, width=COMPACT_TICK_WIDTH, pad=COMPACT_TICK_PAD)
+        if bottom_row:
+            ax_cm.set_xlabel("Predicted", fontsize=AXIS_LABEL_SIZE, labelpad=3)
+        ax_cm.set_title(title, loc="left", fontsize=COMPACT_TICK_LABEL_SIZE, pad=2)
+        for r in range(cm.shape[0]):
+            for c in range(cm.shape[1]):
+                v = cm[r, c]
+                ax_cm.text(c, r, f"{v:.2f}", ha="center", va="center",
+                           fontsize=VALUE_LABEL_SIZE, fontweight="semibold",
+                           color="white" if v >= 0.60 else "#1A1A1A")
+        disable_axis_grid(ax_cm)
+        style_boxed_axes(ax_cm)
 
-    add_shared_axis_labels(figure, ylabel="Real", ylabel_x=0.012, fontsize=AXIS_LABEL_SIZE)
+        bars = ax_bar.bar(x_pos, scores, width=0.74, color=EVENT_COLORS[:len(order)],
+                          edgecolor="#333333", linewidth=0.7)
+        for bar, v in zip(bars, scores):
+            txt = "NA" if np.isnan(v) else f"{v:.3f}"
+            ly = 0.025 if np.isnan(v) or v == 0 else min(v + 0.035, 1.045)
+            ax_bar.text(bar.get_x() + bar.get_width() / 2, ly, txt,
+                        ha="center", va="bottom", fontsize=VALUE_LABEL_SIZE, fontweight="semibold",
+                        color="#666666" if np.isnan(v) else "#1A1A1A")
+        ax_bar.set_xlim(0, len(order))
+        ax_bar.set_ylim(0, 1.08)
+        ax_bar.set_xticks(x_pos)
+        ax_bar.set_xticklabels(x_labels if bottom_row else [], fontsize=COLORBAR_TICK_SIZE)
+        ax_bar.set_yticks(np.arange(0, 1.01, 0.2))
+        ax_bar.tick_params(axis="y", labelsize=COLORBAR_TICK_SIZE,
+                           length=COMPACT_TICK_LENGTH, width=COMPACT_TICK_WIDTH, pad=COMPACT_TICK_PAD,
+                           labelleft=not right_col)
+        ax_bar.tick_params(axis="x", length=COMPACT_TICK_LENGTH, width=COMPACT_TICK_WIDTH, pad=COMPACT_TICK_PAD)
+        ax_bar.set_title(metric_label, fontsize=LEGEND_SIZE, pad=2)
+        disable_axis_grid(ax_bar)
+        ax_bar.set_axisbelow(True)
+        style_open_axes(ax_bar)
 
-    colorbar_ax = figure.add_axes([0.39, 0.018, 0.26, 0.010])
-    colorbar = figure.colorbar(image, cax=colorbar_ax, orientation="horizontal")
-    colorbar.set_ticks([0.0, 0.5, 1.0])
-    colorbar.ax.tick_params(labelsize=6.5, length=1.8, width=0.55, pad=1.2)
-    style_boxed_axes(colorbar.ax)
+    add_shared_axis_labels(fig, ylabel="Real", ylabel_x=0.012, fontsize=AXIS_LABEL_SIZE)
 
-    saved_paths = []
-    for file_format in OUTPUT_FORMATS:
-        path = output_base.with_suffix(f".{file_format}")
-        save_kwargs = {"bbox_inches": "tight", "pad_inches": 0.02}
-        if file_format == "png":
-            save_kwargs["dpi"] = FIGURE_DPI
-        figure.savefig(path, **save_kwargs)
-        saved_paths.append(path)
-    plt.close(figure)
-    return saved_paths
+    # Colorbar spanning leftmost to rightmost panel width
+    fig.canvas.draw()
+    x0 = outer[0, 0].get_position(fig).x0
+    x1 = outer[0, 1].get_position(fig).x1
+    cax = fig.add_axes([x0, 0.015, x1 - x0, 0.012])
+    cbar = fig.colorbar(image, cax=cax, orientation="horizontal")
+    cbar.set_ticks([0.0, 0.5, 1.0])
+    style_colorbar(cbar, tick_length=1.8, tick_pad=1.2)
+
+    saved = save_publication_figure(
+        fig,
+        [output_base.with_suffix(f".{fmt}") for fmt in OUTPUT_FORMATS],
+        dpi=FIGURE_DPI, pad_inches=0.02,
+    )
+    plt.close(fig)
+    return saved
 
 
 def main() -> None:
@@ -368,45 +251,26 @@ def main() -> None:
     validate_data_sources(DATA_SOURCES)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    order = event_order(N_TYPE)
     dataset_results = []
     for source in DATA_SOURCES:
-        print("=" * 72)
-        print(f"Loading {source['label']}")
-        df = load_all_predictions(source["pickle_dir"])
-        event_order, metrics_by_lead = calculate_confusion_metrics(
-            df, N_TYPE, CLASS_METRIC, LEADS
-        )
+        print(f"{'='*72}\nLoading {source['label']}")
+        df = load_source_forecast_table({"pickle_dir": source["pickle_dir"]}, base_year=BASE_YEAR)
+        metrics = compute_metrics(df, N_TYPE, CLASS_METRIC, LEADS)
+        years = sorted(int(y) for y in df["pickle_year"].unique())
+        print(f"Pickle files: {len(years)}; years: {years[0]}-{years[-1]}")
+        print(f"Rows: {len(df)}; leads: {list(metrics)}")
+        dataset_results.append({"id": source["id"], "label": source["label"], "metrics_by_lead": metrics})
 
-        pickle_years = sorted(int(year) for year in df["pickle_year"].unique())
-        print(f"Pickle files: {len(pickle_years)}; pickle years: {pickle_years[0]}-{pickle_years[-1]}")
-        print(f"Rows: {len(df)}; plotted leads: {list(metrics_by_lead)}")
+    common = list(dataset_results[0]["metrics_by_lead"])
+    for r in dataset_results[1:]:
+        if list(r["metrics_by_lead"]) != common:
+            raise ValueError("All data sources must share the same leads.")
 
-        dataset_results.append(
-            {
-                "id": source["id"],
-                "label": source["label"],
-                "metrics_by_lead": metrics_by_lead,
-            }
-        )
-
-    common_leads = list(dataset_results[0]["metrics_by_lead"])
-    for result in dataset_results[1:]:
-        if list(result["metrics_by_lead"]) != common_leads:
-            raise ValueError("All data sources must contain the same leads for combined plotting.")
-
-    saved_paths = []
-    for lead in common_leads:
-        output_base = OUTPUT_DIR / (
-            f"{FIGURE_ID}_{FIGURE_NAME}_type{N_TYPE}_{CLASS_METRIC}_all_sources_lead{lead}"
-        )
-        saved_paths.extend(
-            plot_all_datasets_figure(dataset_results, lead, event_order, output_base)
-        )
-
-    print("=" * 72)
-    for path in saved_paths:
-        print(f"Saved figure: {path}")
-    print("=" * 72)
+    for lead in common:
+        out = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}_type{N_TYPE}_{CLASS_METRIC}_all_sources_lead{lead}"
+        for path in plot_figure(dataset_results, lead, order, out):
+            print(f"Saved: {path}")
 
 
 if __name__ == "__main__":

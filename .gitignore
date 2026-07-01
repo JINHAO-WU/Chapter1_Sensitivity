@@ -1,5 +1,7 @@
 /.agents
+/CLAUDE.md
 /AGENTS.md
+/.gitignore
 /enso_event_figures_error
 /enso_phase_bias_figures
 /enso_transition_skill_figures

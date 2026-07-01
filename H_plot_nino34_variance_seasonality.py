@@ -1,11 +1,7 @@
-"""Plot target-month Niño 3.4 variance seasonality for every input data source.
+"""Niño 3.4 variance seasonality by target month for every input data source.
 
-Each panel compares the observed Niño 3.4 variance with twelve forecast
-trajectories.  Each trajectory begins in one calendar month at lead 1 and
-extends through lead 12, so the horizontal axis spans 23 consecutive months.
-All statistics use the common target months covered by every configured data
-source, and duplicate forecasts are ensemble-averaged before calculating
-variance.
+Each panel compares observed Niño 3.4 variance with twelve forecast
+trajectories starting in each calendar month at lead 1 through lead 12.
 """
 
 from __future__ import annotations
@@ -28,10 +24,15 @@ from A_basic_sources import (
 )
 from plot_style import (
     AXIS_LABEL_SIZE,
+    COLORBAR_TICK_SIZE,
+    COMPACT_TICK_LABEL_SIZE,
     LEGEND_SIZE,
     TITLE_SIZE,
     add_shared_axis_labels,
     configure_publication_style,
+    save_publication_figure,
+    source_panel_grid_5x2,
+    style_source_panel_axes_5x2,
     style_open_axes,
     validate_data_sources,
 )
@@ -46,7 +47,6 @@ INPUT_WINDOW_MONTHS = 6
 LEADS = list(range(1, 13))
 MIN_SAMPLES = 3
 
-# Choose "standard_deviation" for Niño 3.4 spread in °C, or "variance" for °C².
 SPREAD_METRIC = "standard_deviation"
 
 FIGURE_ID = "H"
@@ -56,16 +56,13 @@ OUTPUT_BASENAME = f"{FIGURE_ID}_{FIGURE_NAME}_first_forecast_month_lead1-12"
 FIGURE_DPI = 600
 OUTPUT_FORMATS = ("png", "pdf")
 
-# Double-column publication width.  The sixth panel holds the shared legend.
 FIGURE_WIDTH_INCH = 7.2
-FIGURE_HEIGHT_INCH = 8.3
+FIGURE_HEIGHT_INCH = 10.4
 OBSERVATION_COLOR = "#1A1A1A"
 FORECAST_LINE_WIDTH = 1.7
-OBSERVATION_LINE_WIDTH = 1.3
+OBSERVATION_LINE_WIDTH = 1.8
 FORECAST_MARKER_SIZE = 3.6
 
-# Start-month display: colour identifies season, marker identifies the month
-# within that season (first, second, or third).
 SEASON_COLORS = {
     "DJF": "#0072B2",
     "MAM": "#009E73",
@@ -81,22 +78,13 @@ MONTH_POSITION_MARKERS = {1: "o", 2: "s", 3: "^"}
 DATA_SOURCES = get_dl_sources()
 
 MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-EXTENDED_MONTH_LABELS = [str(month) for month in range(1, 13)] + [str(month) for month in range(1, 12)]
+EXTENDED_MONTH_LABELS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D",
+                       "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N"]
 
 
 # =============================================================================
 # Data preparation
 # =============================================================================
-
-def parse_pickle_year(pickle_path: Path) -> int:
-    """Return the first test-data year encoded in a pickle filename."""
-    return parse_start_year(pickle_path)
-
-
-def parse_input_window_months(pickle_path: Path) -> int:
-    """Return the input-window length encoded in a pickle filename."""
-    return parse_input_months(pickle_path, default=INPUT_WINDOW_MONTHS)
-
 
 def load_source_predictions(source: dict) -> pd.DataFrame:
     """Load one source into target-month, lead, prediction, and observation rows."""
@@ -105,8 +93,8 @@ def load_source_predictions(source: dict) -> pd.DataFrame:
 
     tables = []
     for pickle_path in pickle_files:
-        start_year = parse_pickle_year(pickle_path)
-        input_months = parse_input_window_months(pickle_path)
+        start_year = parse_start_year(pickle_path)
+        input_months = parse_input_months(pickle_path, default=INPUT_WINDOW_MONTHS)
         if input_months != INPUT_WINDOW_MONTHS:
             raise ValueError(
                 f"{pickle_path.name}: input window is {input_months} months, "
@@ -196,7 +184,7 @@ def spread_axis_label() -> str:
 
 
 def calculate_monthly_variances(values: pd.DataFrame) -> tuple[pd.Series, pd.DataFrame, pd.DataFrame]:
-    """Calculate observed variance and start-month forecast trajectories."""
+    """Observed variance by calendar month and forecast variance by start month/lead."""
     observation_once = (
         values.groupby("target_abs_month", as_index=False)
         .agg(observation=("observation", "mean"), target_month=("target_month", "first"))
@@ -231,8 +219,6 @@ def draw_source_panel(
 ) -> None:
     """Draw observed variance plus one 12-lead path per first forecast month."""
     extended_month_positions = np.arange(1, 24)
-    # DJF is drawn last so its January, February, and December trajectories
-    # remain visible where seasonal paths overlap.
     plot_order = [3, 4, 5, 6, 7, 8, 9, 10, 11, 1, 2, 12]
     for first_forecast_month in plot_order:
         trajectory_positions = first_forecast_month + np.arange(len(LEADS))
@@ -269,69 +255,15 @@ def draw_source_panel(
         pad=5,
     )
     axis.set_xlim(1, 23)
-    axis.set_xticks(extended_month_positions)
-    axis.set_xticklabels(EXTENDED_MONTH_LABELS, fontsize=7.0)
-    axis.tick_params(axis="x", labelrotation=90, pad=1.5)
+    axis.set_xticks([1, 4, 7, 10, 13, 16, 19, 22])
+    axis.set_xticklabels(["Jul", "Oct", "Jan", "Apr", "Jul", "Oct", "Jan", "Apr"],
+                          fontsize=COMPACT_TICK_LABEL_SIZE)
+    axis.tick_params(axis="x", labelrotation=0, pad=1.5)
     style_open_axes(axis)
 
 
-def draw_top_right_legend(axis: plt.Axes) -> None:
-    """Draw compact line, season, and marker legends beside the reference panel."""
-    axis.set_axis_off()
-    line_legend = axis.legend(
-        handles=[
-            Line2D([0], [0], color=OBSERVATION_COLOR, linewidth=OBSERVATION_LINE_WIDTH, label="Observed"),
-        ],
-        loc="upper left",
-        frameon=False,
-        fontsize=6.8,
-        handlelength=2.3,
-        borderaxespad=0,
-    )
-    axis.add_artist(line_legend)
-    axis.text(0.0, 0.64, "First forecast season", fontsize=6.8, fontweight="bold", transform=axis.transAxes)
-    season_legend = axis.legend(
-        handles=[
-            Line2D([0], [0], color=colour, linewidth=FORECAST_LINE_WIDTH, label=season)
-            for season, colour in SEASON_COLORS.items()
-        ],
-        loc="upper left",
-        bbox_to_anchor=(0.0, 0.61),
-        frameon=False,
-        fontsize=6.6,
-        ncol=2,
-        columnspacing=0.8,
-        handlelength=1.8,
-        borderaxespad=0,
-    )
-    axis.add_artist(season_legend)
-    axis.text(0.0, 0.28, "Start-month marker", fontsize=6.8, fontweight="bold", transform=axis.transAxes)
-    axis.legend(
-        handles=[
-            Line2D([0], [0], color="0.30", marker=marker, markerfacecolor="white", markeredgewidth=0.9, linewidth=0, markersize=FORECAST_MARKER_SIZE, label=label)
-            for marker, label in [("o", "Jan/Apr/Jul/Oct"), ("s", "Feb/May/Aug/Nov"), ("^", "Mar/Jun/Sep/Dec")]
-        ],
-        loc="upper left",
-        bbox_to_anchor=(0.0, 0.25),
-        frameon=False,
-        fontsize=6.6,
-        handletextpad=0.4,
-        borderaxespad=0,
-    )
-
-
-def style_three_by_three_source_axes(axes: list[plt.Axes]) -> None:
-    """Hide repeated tick labels for a 3-by-3 source layout."""
-    for panel_index, axis in enumerate(axes):
-        row_index, column_index = divmod(panel_index, 3)
-        if column_index != 0:
-            axis.tick_params(axis="y", labelleft=False)
-        if row_index != 2:
-            axis.tick_params(axis="x", labelbottom=False)
-
-
 def add_compact_top_legend(figure: plt.Figure) -> None:
-    """Add the H figure legend above the 3-by-3 panels."""
+    """Add the H figure legend above the 5-by-2 panels."""
     handles = [
         Line2D([0], [0], color=OBSERVATION_COLOR, linewidth=OBSERVATION_LINE_WIDTH, label="Observed"),
         *[
@@ -360,35 +292,29 @@ def add_compact_top_legend(figure: plt.Figure) -> None:
     figure.legend(
         handles=handles,
         loc="upper center",
-        bbox_to_anchor=(0.5, 0.995),
+        bbox_to_anchor=(0.5, 0.998),
         frameon=False,
-        fontsize=6.5,
+        fontsize=6.0,
         ncol=3,
         handlelength=1.5,
-        columnspacing=0.65,
+        columnspacing=0.45,
         handletextpad=0.4,
         labelspacing=0.3,
     )
 
 
 def plot_variance_seasonality(results: list[dict]) -> list[Path]:
-    """Create and save the 3-by-3 start-month variance figure."""
+    """Create and save the 5-by-2 start-month variance figure."""
     configure_publication_style()
-    figure, axes_array = plt.subplots(
-        3,
-        3,
-        figsize=(FIGURE_WIDTH_INCH, FIGURE_HEIGHT_INCH),
-        sharex=True,
-        sharey=True,
-    )
-    axes = axes_array.ravel().tolist()
-    figure.subplots_adjust(
+    figure = plt.figure(figsize=(FIGURE_WIDTH_INCH, FIGURE_HEIGHT_INCH))
+    axes = source_panel_grid_5x2(
+        figure,
         left=0.17,
         right=0.98,
-        bottom=0.09,
-        top=0.90,
+        bottom=0.075,
+        top=0.91,
         wspace=0.12,
-        hspace=0.24,
+        hspace=0.22,
     )
 
     start_month_styles = {
@@ -411,7 +337,7 @@ def plot_variance_seasonality(results: list[dict]) -> list[Path]:
 
     add_compact_top_legend(figure)
 
-    style_three_by_three_source_axes(axes)
+    style_source_panel_axes_5x2(axes, n_visible=len(results))
     add_shared_axis_labels(
         figure,
         xlabel="Forecast verification month",
@@ -434,15 +360,13 @@ def plot_variance_seasonality(results: list[dict]) -> list[Path]:
         axis.set_ylim(0, y_upper)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    saved_paths = []
     output_base = OUTPUT_DIR / OUTPUT_BASENAME
-    for output_format in OUTPUT_FORMATS:
-        output_path = output_base.with_suffix(f".{output_format}")
-        save_kwargs = {"bbox_inches": "tight", "pad_inches": 0.03}
-        if output_format == "png":
-            save_kwargs["dpi"] = FIGURE_DPI
-        figure.savefig(output_path, **save_kwargs)
-        saved_paths.append(output_path)
+    saved_paths = save_publication_figure(
+        figure,
+        [output_base.with_suffix(f".{output_format}") for output_format in OUTPUT_FORMATS],
+        dpi=FIGURE_DPI,
+        pad_inches=0.03,
+    )
     plt.close(figure)
     return saved_paths
 
