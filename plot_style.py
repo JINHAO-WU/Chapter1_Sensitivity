@@ -125,12 +125,12 @@ def add_compact_figure_legend(
     *,
     handles: list,
     labels: list[str] | None = None,
-    ncol: int = 4,
+    ncol: int = 3,
     bbox_to_anchor: tuple[float, float] = (0.5, 0.98),
     fontsize: float = LEGEND_SIZE,
-    columnspacing: float = 0.9,
-    handlelength: float = 2.0,
-    labelspacing: float = 0.35,
+    columnspacing: float = 0.65,
+    handlelength: float = 1.6,
+    labelspacing: float = 0.3,
     loc: str = "upper center",
 ):
     """Add a compact row-readable figure legend."""

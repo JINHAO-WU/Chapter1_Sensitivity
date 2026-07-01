@@ -86,17 +86,17 @@ def test_legend_reordering_reads_by_row() -> None:
     """Validate handle order needed for row-wise visual legend reading."""
     labels = [f"source_{index}" for index in range(1, 10)] + ["95% CI"]
     handles = list(range(len(labels)))
-    reordered_handles, reordered_labels = reorder_legend_handles_by_row(handles, labels, ncol=4)
+    reordered_handles, reordered_labels = reorder_legend_handles_by_row(handles, labels, ncol=3)
     assert reordered_labels == [
         "source_1",
-        "source_5",
-        "source_9",
-        "source_2",
-        "source_6",
-        "95% CI",
-        "source_3",
-        "source_7",
         "source_4",
+        "source_7",
+        "95% CI",
+        "source_2",
+        "source_5",
         "source_8",
+        "source_3",
+        "source_6",
+        "source_9",
     ]
     assert reordered_handles == [labels.index(label) for label in reordered_labels]

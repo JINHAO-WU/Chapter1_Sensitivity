@@ -46,7 +46,7 @@ OUTPUT_FORMATS = ("png", "pdf")
 
 # Double-column publication figure size.
 PUB_FIG_WIDTH_MM = 183
-PUB_FIG_HEIGHT_MM = 245
+PUB_FIG_HEIGHT_MM = 270
 PANEL_TITLE_FONT_SIZE = TITLE_SIZE
 
 # Set to None to use all leads available in the loaded pickle files.
@@ -249,10 +249,10 @@ def plot_all_datasets_figure(
         2,
         left=0.145,
         right=0.985,
-        bottom=0.095,
-        top=0.97,
-        wspace=0.16,
-        hspace=0.34,
+        bottom=0.075,
+        top=0.985,
+        wspace=0.12,
+        hspace=0.24,
     )
     panel_specs = [
         outer_grid[0, :],
@@ -276,7 +276,7 @@ def plot_all_datasets_figure(
         show_shared_x_labels = panel_index >= 7
         is_right_source_column = panel_index != 0 and (panel_index - 1) % 2 == 1
         source_title = panel_title(chr(ord("a") + panel_index), dataset_label)
-        inner_grid = panel_spec.subgridspec(1, 2, width_ratios=[1.0, 1.08], wspace=0.18)
+        inner_grid = panel_spec.subgridspec(1, 2, width_ratios=[1.0, 1.08], wspace=0.12)
 
         confusion_ax = figure.add_subplot(inner_grid[0, 0])
         score_ax = figure.add_subplot(inner_grid[0, 1])
@@ -298,7 +298,7 @@ def plot_all_datasets_figure(
             source_title,
             loc="left",
             fontsize=source_title_font_size,
-            pad=4,
+            pad=2,
         )
         for matrix_row in range(confusion.shape[0]):
             for column_index in range(confusion.shape[1]):
@@ -337,7 +337,7 @@ def plot_all_datasets_figure(
         )
         score_ax.tick_params(axis="x", length=2.2, width=0.6, pad=1.5)
         score_ax.set_title(
-            f"{metric_name}", fontsize=score_title_font_size, pad=4
+            f"{metric_name}", fontsize=score_title_font_size, pad=2
         )
         score_ax.grid(axis="y", color="#C9C9C9", linewidth=0.55, linestyle="--", alpha=0.65)
         score_ax.set_axisbelow(True)
@@ -345,7 +345,7 @@ def plot_all_datasets_figure(
 
     add_shared_axis_labels(figure, ylabel="Real", ylabel_x=0.012, fontsize=AXIS_LABEL_SIZE)
 
-    colorbar_ax = figure.add_axes([0.42, 0.025, 0.20, 0.012])
+    colorbar_ax = figure.add_axes([0.39, 0.018, 0.26, 0.010])
     colorbar = figure.colorbar(image, cax=colorbar_ax, orientation="horizontal")
     colorbar.set_ticks([0.0, 0.5, 1.0])
     colorbar.ax.tick_params(labelsize=6.5, length=1.8, width=0.55, pad=1.2)

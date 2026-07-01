@@ -67,7 +67,7 @@ TRANSITION_METHOD = "independent"
 #   "neutral_la_nina_neutral"
 #   "extreme_el_nino_neutral_extreme_el_nino"
 #   "extreme_la_nina_neutral_extreme_la_nina"
-TRANSITION_MODE = "neutral_la_nina_neutral"
+TRANSITION_MODE = "la_nina_neutral_la_nina"
 ACC_WARNING_TOLERANCE = 0.02
 
 SHOW_FIGURE = False
@@ -528,7 +528,7 @@ def add_figure_header(fig: plt.Figure, title: str, show_highlight_note: bool) ->
         start_year, end_year = ANNOTATE_YEAR_RANGE
         fig.text(
             0.5,
-            0.965,
+            0.982,
             f"Open red circles: {start_year}-{end_year}",
             ha="center",
             va="center",
@@ -708,7 +708,7 @@ def plot_transition_skill_relationship(points: list[WindowPoint]) -> None:
         raise ValueError("Need at least one valid year to draw the relationship plot.")
     x_limits, y_limits, x_ticks, y_ticks = global_skill_plot_axes(points)
 
-    fig_height = 7.6
+    fig_height = 8.15
     fig, axes_array = plt.subplots(
         3,
         3,
@@ -719,11 +719,11 @@ def plot_transition_skill_relationship(points: list[WindowPoint]) -> None:
     axes = axes_array.ravel().tolist()
     fig.subplots_adjust(
         left=0.095,
-        right=0.88,
-        bottom=0.105,
-        top=0.90,
-        wspace=0.14,
-        hspace=0.38,
+        right=0.905,
+        bottom=0.085,
+        top=0.935,
+        wspace=0.12,
+        hspace=0.24,
     )
 
     scatter = None
@@ -746,8 +746,8 @@ def plot_transition_skill_relationship(points: list[WindowPoint]) -> None:
         colorbar = fig.colorbar(
             scatter,
             ax=axes,
-            fraction=0.022,
-            pad=0.018,
+            fraction=0.018,
+            pad=0.012,
         )
         colorbar.set_label("Test-start year")
         style_boxed_axes(colorbar.ax)
@@ -763,8 +763,8 @@ def plot_transition_skill_relationship(points: list[WindowPoint]) -> None:
         fig,
         xlabel=transition_axis_label(),
         ylabel=f"ACC at lead {LEAD}",
-        xlabel_y=0.045,
-        ylabel_x=0.032,
+        xlabel_y=0.035,
+        ylabel_x=0.027,
     )
 
     save_publication_figure(fig, make_output_paths("frequency_vs_skill"))
@@ -855,7 +855,7 @@ def plot_transition_frequency_over_time(points: list[WindowPoint]) -> None:
     freq_min = max(0.0, freq_min_raw - freq_padding)
     freq_max = min(1.0, freq_max_raw + freq_padding)
 
-    fig_height = 7.6
+    fig_height = 8.15
     fig, axes_array = plt.subplots(
         3,
         3,
@@ -866,11 +866,11 @@ def plot_transition_frequency_over_time(points: list[WindowPoint]) -> None:
     axes = axes_array.ravel().tolist()
     fig.subplots_adjust(
         left=0.095,
-        right=0.88,
-        bottom=0.105,
-        top=0.92,
-        wspace=0.14,
-        hspace=0.38,
+        right=0.905,
+        bottom=0.085,
+        top=0.945,
+        wspace=0.12,
+        hspace=0.24,
     )
 
     scatter = None
@@ -891,8 +891,8 @@ def plot_transition_frequency_over_time(points: list[WindowPoint]) -> None:
         colorbar = fig.colorbar(
             scatter,
             ax=axes,
-            fraction=0.022,
-            pad=0.018,
+            fraction=0.018,
+            pad=0.012,
         )
         colorbar.set_label("Test-start year")
         style_boxed_axes(colorbar.ax)
@@ -908,8 +908,8 @@ def plot_transition_frequency_over_time(points: list[WindowPoint]) -> None:
         fig,
         xlabel="Test-start year",
         ylabel=transition_axis_label(),
-        xlabel_y=0.045,
-        ylabel_x=0.032,
+        xlabel_y=0.035,
+        ylabel_x=0.027,
     )
 
     save_publication_figure(fig, make_output_paths("frequency_over_time"))

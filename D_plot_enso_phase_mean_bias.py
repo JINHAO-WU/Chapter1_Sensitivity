@@ -218,14 +218,14 @@ def main() -> None:
     add_compact_figure_legend(
         figure,
         handles=phase_handles + source_handles,
-        ncol=4,
+        ncol=3,
         bbox_to_anchor=(0.5, 0.985),
         fontsize=LEGEND_SIZE,
-        handlelength=1.6,
-        columnspacing=0.65,
-        labelspacing=0.25,
+        handlelength=1.35,
+        columnspacing=0.5,
+        labelspacing=0.28,
     )
-    figure.subplots_adjust(top=0.80, left=0.11, right=0.98, bottom=0.13)
+    figure.subplots_adjust(top=0.82, left=0.11, right=0.98, bottom=0.13)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}_by_lead"

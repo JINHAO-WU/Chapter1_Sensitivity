@@ -295,7 +295,7 @@ def plot_overview_lines(
         left=0.105,
         right=0.985,
         bottom=0.09,
-        top=0.82,
+        top=0.855,
         hspace=0.12,
     )
     axes = np.atleast_1d(axes)
@@ -381,12 +381,12 @@ def plot_overview_lines(
         fig,
         handles=legend_handles,
         labels=legend_labels,
-        ncol=4,
+        ncol=3,
         bbox_to_anchor=(0.5, 0.985),
         fontsize=PLOT_STYLE["legend_size"],
-        columnspacing=0.75,
-        handlelength=1.8,
-        labelspacing=0.25,
+        columnspacing=0.55,
+        handlelength=1.45,
+        labelspacing=0.28,
     )
 
     fig.savefig(output_path.with_suffix(".png"), dpi=FIGURE_DPI, facecolor="white", bbox_inches="tight")
@@ -416,7 +416,7 @@ def plot_small_multiples(
         left=0.12,
         right=0.985,
         bottom=0.11,
-        top=0.90,
+        top=0.875,
         wspace=0.12,
         hspace=0.38,
     )

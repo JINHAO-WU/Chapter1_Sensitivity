@@ -436,13 +436,14 @@ def plot_amplitude_by_class(
     add_compact_figure_legend(
         fig,
         handles=legend_handles,
-        ncol=4,
+        ncol=3,
         bbox_to_anchor=(0.5, 0.99),
         fontsize=LEGEND_SIZE,
-        columnspacing=0.9,
-        handlelength=1.8,
+        columnspacing=0.55,
+        handlelength=1.45,
+        labelspacing=0.28,
     )
-    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.90))
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.92))
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
 
@@ -499,13 +500,14 @@ def plot_peak_month_error(
     add_compact_figure_legend(
         fig,
         handles=legend_handles,
-        ncol=4,
+        ncol=3,
         bbox_to_anchor=(0.5, 1.0),
         fontsize=LEGEND_SIZE,
-        columnspacing=0.9,
-        handlelength=1.8,
+        columnspacing=0.55,
+        handlelength=1.45,
+        labelspacing=0.28,
     )
-    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.88))
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.90))
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
 

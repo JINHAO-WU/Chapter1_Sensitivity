@@ -286,25 +286,25 @@ add_compact_figure_legend(
     figure,
     handles=handles,
     labels=labels,
-    ncol=4,
+    ncol=3,
     fontsize=LEGEND_SIZE,
-    handlelength=1.8,
-    columnspacing=0.75,
-    labelspacing=0.25,
-    bbox_to_anchor=(0.5, 0.985),
+    handlelength=1.45,
+    columnspacing=0.55,
+    labelspacing=0.28,
+    bbox_to_anchor=(0.5, 1.045),
 )
 if CALCULATE_NMME:
     axes[1].legend(
         frameon=False,
-        ncol=4,
+        ncol=3,
         fontsize=LEGEND_SIZE,
-        handlelength=2.0,
-        columnspacing=0.9,
-        labelspacing=0.35,
+        handlelength=1.55,
+        columnspacing=0.65,
+        labelspacing=0.3,
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.22),
+        bbox_to_anchor=(0.5, 1.18),
     )
-figure.subplots_adjust(left=0.12, right=0.98, bottom=0.15, top=0.80 if not CALCULATE_NMME else 0.82, hspace=0.34)
+figure.subplots_adjust(left=0.12, right=0.98, bottom=0.15, top=0.84 if not CALCULATE_NMME else 0.81, hspace=0.34)
 output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}"
 for output_format in OUTPUT_FORMATS:
     output_path = output_base.with_suffix(f".{output_format}")

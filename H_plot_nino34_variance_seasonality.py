@@ -360,14 +360,14 @@ def add_compact_top_legend(figure: plt.Figure) -> None:
     figure.legend(
         handles=handles,
         loc="upper center",
-        bbox_to_anchor=(0.5, 0.985),
+        bbox_to_anchor=(0.5, 0.995),
         frameon=False,
         fontsize=6.5,
-        ncol=4,
-        handlelength=1.8,
-        columnspacing=0.85,
+        ncol=3,
+        handlelength=1.5,
+        columnspacing=0.65,
         handletextpad=0.4,
-        labelspacing=0.35,
+        labelspacing=0.3,
     )
 
 
@@ -385,10 +385,10 @@ def plot_variance_seasonality(results: list[dict]) -> list[Path]:
     figure.subplots_adjust(
         left=0.17,
         right=0.98,
-        bottom=0.115,
-        top=0.88,
+        bottom=0.09,
+        top=0.90,
         wspace=0.12,
-        hspace=0.38,
+        hspace=0.24,
     )
 
     start_month_styles = {
@@ -416,7 +416,7 @@ def plot_variance_seasonality(results: list[dict]) -> list[Path]:
         figure,
         xlabel="Forecast verification month",
         ylabel=spread_axis_label(),
-        xlabel_y=0.045,
+        xlabel_y=0.035,
         ylabel_x=0.04,
         fontsize=AXIS_LABEL_SIZE,
     )

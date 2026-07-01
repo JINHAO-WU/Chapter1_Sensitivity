@@ -54,7 +54,7 @@ OUTPUT_BASENAME = f"{FIGURE_ID}_{FIGURE_NAME}_lead6"
 OUTPUT_FORMATS = ("png", "pdf")
 FIGURE_DPI = 600
 FIGURE_WIDTH_INCH = 7.2
-FIGURE_HEIGHT_INCH = 8.2
+FIGURE_HEIGHT_INCH = 8.6
 
 OBSERVATION_COLOR = "#000000"
 PREDICTION_COVARIANCE_COLOR = NMME_COLORS[3]
@@ -238,10 +238,10 @@ axes = axes_array.ravel().tolist()
 figure.subplots_adjust(
     left=0.12,
     right=0.98,
-    bottom=0.165,
-    top=0.96,
+    bottom=0.12,
+    top=0.975,
     wspace=0.12,
-    hspace=0.38,
+    hspace=0.24,
 )
 
 for panel_index, (axis, result) in enumerate(zip(axes, results)):
@@ -287,7 +287,7 @@ add_shared_axis_labels(
     figure,
     xlabel="Verification year",
     ylabel="Annual covariance contribution",
-    xlabel_y=0.105,
+    xlabel_y=0.066,
     ylabel_x=0.025,
     fontsize=AXIS_LABEL_SIZE,
 )
@@ -307,11 +307,11 @@ figure.legend(
     frameon=False,
     fontsize=LEGEND_SIZE,
     ncol=2,
-    bbox_to_anchor=(0.5, 0.018),
+    bbox_to_anchor=(0.5, 0.006),
 )
 figure.text(
     0.5,
-    0.065,
+    0.040,
     f"Lead {LEAD} months; duplicate target-month forecasts are ensemble averaged",
     ha="center",
     va="center",
