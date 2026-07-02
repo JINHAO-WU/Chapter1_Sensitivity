@@ -56,7 +56,7 @@ COMPARISON_FIG_HEIGHT_MM = 180
 
 LEADS = [6]
 COMPARISON_LEAD = 6
-N_BOOTSTRAP = 5
+N_BOOTSTRAP = 5000
 ALPHA = 0.05
 RANDOM_SEED = 42
 
@@ -246,8 +246,8 @@ def plot_overview_lines(
     reference_source = next(source for source in data_sources if source["id"] == REFERENCE_DATASET_ID)
     comparison_sources = [source for source in data_sources if source["id"] != REFERENCE_DATASET_ID]
     source_groups = [
-        comparison_sources[:4],       # (a) source_2–5   (with source_1 added below)
-        comparison_sources[4:],       # (b) source_6–10  (with source_1 added below)
+        comparison_sources[:5],       # (a) source_2–6   (with source_1 added below)
+        comparison_sources[5:],       # (b) source_7–10  (with source_1 added below)
     ]
 
     values = np.array(

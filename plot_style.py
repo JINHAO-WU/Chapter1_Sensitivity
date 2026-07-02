@@ -41,18 +41,18 @@ LIGHT_GRID_COLOR = "#D9D9D9"
 LIGHT_GRID_LINEWIDTH = 0.55
 LIGHT_GRID_ALPHA = 0.8
 
-# Tol Bright palette — colourblind-friendly, distinguishable in B&W print.
+# Wong (2011) palette — distinguishable, colourblind-friendly, B&W-printable.
 DATASET_COLORS = {
     "source_1":  "#000000",
-    "source_2":  "#EE6677",
-    "source_3":  "#228833",
-    "source_4":  "#4477AA",
-    "source_5":  "#CCBB44",
-    "source_6":  "#66CCEE",
-    "source_7":  "#AA3377",
-    "source_8":  "#BBBBBB",
-    "source_9":  "#EE8866",
-    "source_10": "#332288",
+    "source_2":  "#E69F00",
+    "source_3":  "#56B4E9",
+    "source_4":  "#009E73",
+    "source_5":  "#F0E442",
+    "source_6":  "#0072B2",
+    "source_7":  "#D55E00",
+    "source_8":  "#CC79A7",
+    "source_9":  "#8C564B",
+    "source_10": "#17BECF",
 }
 
 NMME_COLORS = ("#56B4E9", "#E69F00", "#009E73", "#CC79A7", "#D55E00", "#0072B2", "#999999")

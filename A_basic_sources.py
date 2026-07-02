@@ -32,37 +32,37 @@ _SOURCE_DEFINITIONS = [
     {
         "id": "source_4",
         "folder": "pickle_HamCNN_input6_var2_sst_ohc300_NOAA",
-        "label": "SST (NOAA)+OHC300",
+        "label": "SST (NOAA+OHC300)",
     },
     {
         "id": "source_5",
-        "folder": "pickle_HamCNN_input6_var1_sst_10CMIP6",
-        "label": "SST (10CMIP6)",
-    },
-    {
-        "id": "source_6",
-        "folder": "pickle_HamCNN_input6_var1_sst_NOAA_10CMIP6",
-        "label": "SST (NOAA+10CMIP6)",
-    },
-    {
-        "id": "source_7",
-        "folder": "pickle_HamCNN_input6_var1_sst_NOAA_20CMIP6",
-        "label": "SST (NOAA+20CMIP6)",
-    },
-    {
-        "id": "source_8",
         "folder": "pickle_HamCNN_input6_var1_sst_NOAA_10MIROC6",
         "label": "SST (NOAA+10MIROC6)",
     },
     {
-        "id": "source_9",
+        "id": "source_6",
         "folder": "pickle_HamCNN_input6_var1_sst_NOAA_10MIROC6_CanESM5",
         "label": "SST (NOAA+10MIROC6+10CanESM5)",
     },
     {
+        "id": "source_7",
+        "folder": "pickle_HamCNN_input6_var1_sst_10CMIP6",
+        "label": "SST (10CMIP6)",
+    },
+    {
+        "id": "source_8",
+        "folder": "pickle_HamCNN_input6_var1_sst_NOAA_10CMIP6",
+        "label": "SST (NOAA+10CMIP6)",
+    },
+    {
+        "id": "source_9",
+        "folder": "pickle_HamCNN_input6_var1_sst_NOAA_10CMIP6_TL",
+        "label": "SST (TL-10CMIP6+NOAA)",
+    },
+    {
         "id": "source_10",
-        "folder": "pickle_HamCNN_input6_var1_sst_NOAA",
-        "label": "SST (NOAA; source10)",
+        "folder": "pickle_HamCNN_input6_var1_sst_NOAA_20CMIP6",
+        "label": "SST (NOAA+20CMIP6)",
     },
 ]
 

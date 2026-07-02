@@ -66,6 +66,7 @@ REFERENCE_CMAP = "viridis"
 DELTA_CMAP = "PuOr"
 REFERENCE_VMIN = 0.2
 REFERENCE_VMAX = 1.0
+REFERENCE_COLORBAR_WIDTH = 0.015
 
 DATA_SOURCES = get_dl_sources()
 
@@ -89,7 +90,7 @@ _LABEL_MAP = {
 # Data loading and preparation
 # =============================================================================
 
-def load_all_predictions(folder: Path) -> pd.DataFrame:
+def load_all_predictions(folder):
     df = load_source_forecast_table({"pickle_dir": Path(folder)}, base_year=BASE_YEAR)
     if TIME_START is not None or TIME_END is not None:
         ym = df["year"] * 12 + df["month"]
@@ -97,11 +98,10 @@ def load_all_predictions(folder: Path) -> pd.DataFrame:
             df = df[ym >= TIME_START[0] * 12 + TIME_START[1]]
         if TIME_END is not None:
             df = df[ym <= TIME_END[0] * 12 + TIME_END[1]]
-
     return df
 
 
-def compute_corr_table(df_avg: pd.DataFrame, max_lead: int) -> pd.DataFrame:
+def compute_corr_table(df_avg, max_lead):
     if Y_MODE not in Y_MODE_SETTINGS:
         raise ValueError("Y_MODE must be target_month, target_season, first_pred_month, or first_pred_season.")
     y_col, y_values, y_labels = Y_MODE_SETTINGS[Y_MODE]
@@ -115,8 +115,7 @@ def compute_corr_table(df_avg: pd.DataFrame, max_lead: int) -> pd.DataFrame:
     return pd.DataFrame(corr_matrix, index=y_labels, columns=[str(i) for i in range(1, max_lead + 1)])
 
 
-def prepare_dataset(source: dict) -> dict:
-    """Load one data source and compute both correlation matrices."""
+def prepare_dataset(source):
     dataset_id = source["id"]
     label = source["label"]
     pickle_dir = source["pickle_dir"]
@@ -156,10 +155,7 @@ def prepare_dataset(source: dict) -> dict:
     )
 
     pickle_years = sorted(int(year) for year in df["pickle_year"].unique())
-    print(
-        f"Pickle files: {len(pickle_years)}; "
-        f"pickle years: {pickle_years[0]}-{pickle_years[-1]}"
-    )
+    print(f"Pickle files: {len(pickle_years)}; pickle years: {pickle_years[0]}-{pickle_years[-1]}")
     print(f"Rows: {len(df)}; available leads: {available_leads}; plotted leads: 1-{max_lead}")
 
     return {
@@ -175,10 +171,11 @@ def prepare_dataset(source: dict) -> dict:
 # Plotting and main workflow
 # =============================================================================
 
-def draw_heatmap(ax, matrix: pd.DataFrame, panel: str, title: str,
-                cmap: str, norm: mpl.colors.Normalize) -> mpl.image.AxesImage:
+def draw_heatmap(ax, matrix, panel, title, cmap, norm):
     image = ax.imshow(matrix.values, cmap=cmap, norm=norm, aspect="auto", interpolation="nearest")
-    ax.set_title(panel_title(panel, title), loc="left", fontsize=TITLE_SIZE, pad=4)
+    # Bold panel label only, normal-weight content title
+    title_text = f"$\\mathbf{{({panel})}}$ {title}"
+    ax.set_title(title_text, loc="left", fontsize=TITLE_SIZE, pad=4)
     ax.set_xticks(np.arange(matrix.shape[1]))
     ax.set_yticks(np.arange(matrix.shape[0]))
     ax.set_xticklabels(matrix.columns, fontsize=COMPACT_TICK_LABEL_SIZE)
@@ -190,21 +187,19 @@ def draw_heatmap(ax, matrix: pd.DataFrame, panel: str, title: str,
             for c in range(matrix.shape[1]):
                 v = matrix.iat[r, c]
                 if not np.isnan(v):
-                    ax.text(c, r, f"{v:.2f}", ha="center", va="center",
-                            fontsize=VALUE_LABEL_SIZE)
+                    ax.text(c, r, f"{v:.2f}", ha="center", va="center", fontsize=VALUE_LABEL_SIZE)
     style_boxed_axes(ax)
     return image
 
 
-def plot_reference_delta_figure(results: list[dict], matrix_key: str, output_base: Path) -> list[Path]:
-    """Plot SST_NOAA as reference and all other sources as deltas."""
-    result_by_id = {result["id"]: result for result in results}
-    labels_by_id = {result["id"]: result["label"] for result in results}
+def plot_reference_delta_figure(results, matrix_key, output_base):
+    result_by_id = {r["id"]: r for r in results}
+    labels_by_id = {r["id"]: r["label"] for r in results}
     reference = result_by_id[REFERENCE_DATASET_ID][matrix_key]
-    comparison_ids = [source["id"] for source in DATA_SOURCES if source["id"] != REFERENCE_DATASET_ID]
-    delta_matrices = [result_by_id[dataset_id][matrix_key] - reference for dataset_id in comparison_ids]
+    comparison_ids = [s["id"] for s in DATA_SOURCES if s["id"] != REFERENCE_DATASET_ID]
+    delta_matrices = [result_by_id[did][matrix_key] - reference for did in comparison_ids]
 
-    max_abs_delta = max(float(np.nanmax(np.abs(delta.values))) for delta in delta_matrices)
+    max_abs_delta = max(float(np.nanmax(np.abs(d.values))) for d in delta_matrices)
     delta_limit = max(0.05, min(0.4, np.ceil(max_abs_delta * 20) / 20))
 
     configure_publication_style()
@@ -212,41 +207,31 @@ def plot_reference_delta_figure(results: list[dict], matrix_key: str, output_bas
     fig = plt.figure(figsize=(PUB_FIG_WIDTH_MM / 25.4, PUB_FIG_HEIGHT_MM / 25.4))
     axes_list = source_panel_grid_5x2(
         fig,
-        left=0.085,
-        right=0.98,
+        left=0.10,
+        right=0.995,
         bottom=0.095,
-        top=0.965,
-        wspace=0.12,
-        hspace=0.18,
+        top=0.970,
+        wspace=0.06,
+        hspace=0.20,
     )
-    panel_labels = [chr(ord("a") + index) for index in range(len(axes_list))]
+    panel_labels = [chr(ord("a") + i) for i in range(len(axes_list))]
 
     reference_norm = mpl.colors.Normalize(vmin=REFERENCE_VMIN, vmax=REFERENCE_VMAX)
     delta_norm = mpl.colors.TwoSlopeNorm(vmin=-delta_limit, vcenter=0.0, vmax=delta_limit)
 
     reference_image = draw_heatmap(
-        axes_list[0],
-        reference,
-        "a",
-        labels_by_id[REFERENCE_DATASET_ID],
-        REFERENCE_CMAP,
-        reference_norm,
+        axes_list[0], reference, "a",
+        labels_by_id[REFERENCE_DATASET_ID], REFERENCE_CMAP, reference_norm,
     )
 
     delta_image = None
-    for panel_label_value, ax, dataset_id, delta in zip(
-        panel_labels[1:],
-        axes_list[1:],
-        comparison_ids,
-        delta_matrices,
+    for panel_label, ax, dataset_id, delta in zip(
+        panel_labels[1:], axes_list[1:], comparison_ids, delta_matrices,
     ):
         delta_image = draw_heatmap(
-            ax,
-            delta,
-            panel_label_value,
+            ax, delta, panel_label,
             f"{labels_by_id[dataset_id]} - {labels_by_id[REFERENCE_DATASET_ID]}",
-            DELTA_CMAP,
-            delta_norm,
+            DELTA_CMAP, delta_norm,
         )
 
     if matrix_key == "lead_corr":
@@ -259,21 +244,28 @@ def plot_reference_delta_figure(results: list[dict], matrix_key: str, output_bas
         xlabel=x_label,
         ylabel=y_label,
         xlabel_y=0.048,
-        ylabel_x=0.018,
+        ylabel_x=0.035,
         fontsize=AXIS_LABEL_SIZE,
     )
 
-    reference_position = axes_list[0].get_position()
-    cax_reference = fig.add_axes(
-        [reference_position.x1 + 0.012, reference_position.y0, 0.015, reference_position.height]
-    )
-    cbar_reference = fig.colorbar(reference_image, cax=cax_reference)
-    style_colorbar(cbar_reference, label="Pearson r")
+    # Reference colorbar to the LEFT of panel a
+    ref_pos = axes_list[0].get_position()
+    cax_ref = fig.add_axes([
+        ref_pos.x0 - 0.060,
+        ref_pos.y0,
+        REFERENCE_COLORBAR_WIDTH,
+        ref_pos.height,
+    ])
+    cbar_ref = fig.colorbar(reference_image, cax=cax_ref)
+    style_colorbar(cbar_ref, label="Pearson r")
+    cbar_ref.ax.yaxis.set_ticks_position("left")
+    cbar_ref.ax.yaxis.set_label_position("left")
 
-    cax_delta = fig.add_axes(
-        [axes_list[0].get_position().x0, 0.016,
-         axes_list[-1].get_position().x1 - axes_list[0].get_position().x0, 0.018],
-    )
+    # Delta colorbar at bottom across full width
+    cax_delta = fig.add_axes([
+        axes_list[0].get_position().x0, 0.016,
+        axes_list[-1].get_position().x1 - axes_list[0].get_position().x0, 0.018,
+    ])
     cbar_delta = fig.colorbar(delta_image, cax=cax_delta, orientation="horizontal")
     style_colorbar(
         cbar_delta,
@@ -283,7 +275,7 @@ def plot_reference_delta_figure(results: list[dict], matrix_key: str, output_bas
 
     saved_paths = save_publication_figure(
         fig,
-        [output_base.with_suffix(f".{suffix}") for suffix in ["png", "pdf"]],
+        [output_base.with_suffix(f".{s}") for s in ["png", "pdf"]],
         dpi=FIGURE_DPI,
         pad_inches=0.02,
     )
@@ -292,18 +284,15 @@ def plot_reference_delta_figure(results: list[dict], matrix_key: str, output_bas
     return saved_paths
 
 
-def main() -> None:
+def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     validate_data_sources(DATA_SOURCES)
 
-    results = [prepare_dataset(source) for source in DATA_SOURCES]
-    reference_label = next(source["label"] for source in DATA_SOURCES if source["id"] == REFERENCE_DATASET_ID)
+    results = [prepare_dataset(s) for s in DATA_SOURCES]
+    reference_label = next(s["label"] for s in DATA_SOURCES if s["id"] == REFERENCE_DATASET_ID)
 
-    saved_paths = plot_reference_delta_figure(
-        results,
-        "lead_corr",
-        OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}_lead_correlation_delta_vs_{reference_label}",
-    )
+    output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}_lead_correlation_delta_vs_{reference_label}"
+    saved_paths = plot_reference_delta_figure(results, "lead_corr", output_base)
 
     for path in saved_paths:
         print(f"Saved figure: {path}")
