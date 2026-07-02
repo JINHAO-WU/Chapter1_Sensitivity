@@ -224,8 +224,8 @@ def _source_legend(fig, data_sources, bbox_y):
 
 def _style_ax(ax, title: str, panel_idx: int):
     ax.axhline(0, color="#444444", linewidth=1.0, linestyle=(0, (5, 4)))
-    ax.set_title(panel_title(chr(ord("a") + panel_idx), title),
-                 loc="left", fontsize=TITLE_SIZE, fontweight="bold")
+    title_text = f"$\\mathbf{{({chr(ord('a') + panel_idx)})}}$ {title}"
+    ax.set_title(title_text, loc="left", fontsize=TITLE_SIZE)
     style_light_grid(ax, axis="y", linewidth=0.7)
     style_light_grid(ax, axis="x", color="#EEEEEE", linewidth=0.5)
     ax.tick_params(axis="both", direction="in", labelsize=LEGEND_SIZE)
@@ -233,7 +233,7 @@ def _style_ax(ax, title: str, panel_idx: int):
 
 
 def _plot_amplitude(results: list[dict], data_sources: list[dict], out: Path):
-    fig, axes = plt.subplots(2, 2, figsize=(13.5, 8.0), dpi=FIGURE_DPI,
+    fig, axes = plt.subplots(2, 2, figsize=(13.0, 8.5), dpi=FIGURE_DPI,
                              sharex=True, sharey=False)
     axes = axes.ravel()
     for i, (ax, ec) in enumerate(zip(axes, EVENT_CLASSES)):
@@ -249,14 +249,14 @@ def _plot_amplitude(results: list[dict], data_sources: list[dict], out: Path):
     for ax in axes[::2]:
         ax.set_ylabel("Amplitude underestimation", fontsize=AXIS_LABEL_SIZE)
 
-    _source_legend(fig, data_sources, 0.99)
-    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.88))
+    _source_legend(fig, data_sources, 0.97)
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.92))
     save_publication_figure(fig, [out], dpi=FIGURE_DPI, pad_inches=0.02)
     plt.close(fig)
 
 
 def _plot_peak_error(results: list[dict], data_sources: list[dict], out: Path):
-    fig, axes = plt.subplots(1, 2, figsize=(13.5, 4.8), dpi=FIGURE_DPI,
+    fig, axes = plt.subplots(1, 2, figsize=(13.0, 5.2), dpi=FIGURE_DPI,
                              sharex=True, sharey=False)
     axes = axes.ravel()
     for i, (ax, (grp, _)) in enumerate(zip(axes, EVENT_GROUPS.items())):
@@ -271,8 +271,8 @@ def _plot_peak_error(results: list[dict], data_sources: list[dict], out: Path):
         ax.set_xlabel("Test-set start year", fontsize=AXIS_LABEL_SIZE)
     axes[0].set_ylabel("Peak-month error (months)", fontsize=AXIS_LABEL_SIZE)
 
-    _source_legend(fig, data_sources, 1.0)
-    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.86))
+    _source_legend(fig, data_sources, 0.98)
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.90))
     save_publication_figure(fig, [out], dpi=FIGURE_DPI, pad_inches=0.02)
     plt.close(fig)
 

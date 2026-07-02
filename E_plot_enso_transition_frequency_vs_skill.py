@@ -52,20 +52,15 @@ MAKE_TRANSITION_TIME_PLOT = True
 LEAD = 6
 INPUT_MONTHS = 6
 ENSO_THRESHOLD = 0.5
-ENSO_EXIT_THRESHOLD = 0.4
 EXTREME_ENSO_THRESHOLD = 1.5
 
-# "hysteresis": entry ±0.5C / exit ±0.4C. "independent": raw ±0.5C.
-TRANSITION_METHOD = "independent"
-
 # el_nino_neutral_el_nino | la_nina_neutral_la_nina |
-# neutral_el_nino_neutral | neutral_la_nina_neutral |
-# extreme_el_nino_neutral_extreme_el_nino | extreme_la_nina_neutral_extreme_la_nina
-TRANSITION_MODE = "la_nina_neutral_la_nina"
+# neutral_el_nino_neutral | neutral_la_nina_neutral
+TRANSITION_MODE = "neutral_la_nina_neutral"
 ACC_WARNING_TOLERANCE = 0.02
 
 SHOW_FIGURE = False
-ANNOTATE_YEAR_RANGE: tuple[int, int] | None = (1922, 1944)
+ANNOTATE_YEAR_RANGE = (1922, 1944)
 X_AXIS_PADDING_FRACTION = 0.12
 X_AXIS_MIN_PADDING = 0.0008
 
@@ -81,20 +76,20 @@ PLOT_STYLE = {
     "highlight_color": "#b2182b",
 }
 
-# (label, extreme, event_state, state_run_pattern)
+# (label, extreme, event_state, state_run_pattern, arrow_label)
 MODE_PROPS = {
     "el_nino_neutral_el_nino":
-        ("EN-Neutral-EN", False, 1, (1, 0, 1)),
+        ("EN-Neutral-EN", False, 1, (1, 0, 1), "EN -> Neutral -> EN"),
     "la_nina_neutral_la_nina":
-        ("LN-Neutral-LN", False, -1, (-1, 0, -1)),
+        ("LN-Neutral-LN", False, -1, (-1, 0, -1), "LN -> Neutral -> LN"),
     "neutral_el_nino_neutral":
-        ("Neutral-EN-Neutral", False, 1, (0, 1, 0)),
+        ("Neutral-EN-Neutral", False, 1, (0, 1, 0), "Neutral -> EN -> Neutral"),
     "neutral_la_nina_neutral":
-        ("Neutral-LN-Neutral", False, -1, (0, -1, 0)),
+        ("Neutral-LN-Neutral", False, -1, (0, -1, 0), "Neutral -> LN -> Neutral"),
     "extreme_el_nino_neutral_extreme_el_nino":
-        ("ExEN-Neutral-ExEN", True, 1, (1, 0, 1)),
+        ("ExEN-Neutral-ExEN", True, 1, (1, 0, 1), "ExEN -> Neutral -> ExEN"),
     "extreme_la_nina_neutral_extreme_la_nina":
-        ("ExLN-Neutral-ExLN", True, -1, (-1, 0, -1)),
+        ("ExLN-Neutral-ExLN", True, -1, (-1, 0, -1), "ExLN -> Neutral -> ExLN"),
 }
 
 
@@ -122,7 +117,7 @@ class WindowPoint:
 # Helpers
 # =============================================================================
 
-def _load_pickle(path: Path) -> dict:
+def _load_pickle(path):
     with path.open("rb") as f:
         data = pickle.load(f)
     if not isinstance(data, dict):
@@ -130,19 +125,19 @@ def _load_pickle(path: Path) -> dict:
     return data
 
 
-def _get_array(data: dict, name: str, path: Path) -> np.ndarray:
+def _get_array(data, name, path):
     if name not in data:
         raise KeyError(f"{path.name}: missing {name!r}")
     return np.asarray(data[name])
 
 
-def _check_lead(idx: int, n_leads: int, name: str, path: Path) -> None:
+def _check_lead(idx, n_leads, name, path):
     if idx < 0 or idx >= n_leads:
         raise ValueError(
-            f"{path.name}: LEAD={LEAD} outside range for {name} (1–{n_leads}).")
+            f"{path.name}: LEAD={LEAD} outside range for {name} (1-{n_leads}).")
 
 
-def pearson_r(x: np.ndarray, y: np.ndarray) -> float:
+def pearson_r(x, y):
     valid = np.isfinite(x) & np.isfinite(y)
     if valid.sum() < 2:
         return math.nan
@@ -152,7 +147,7 @@ def pearson_r(x: np.ndarray, y: np.ndarray) -> float:
     return float(np.corrcoef(xv, yv)[0, 1])
 
 
-def pearson_p(r: float, n: int) -> float:
+def pearson_p(r, n):
     if not np.isfinite(r) or n < 3 or abs(r) >= 1:
         return math.nan
     t = r * math.sqrt((n - 2) / (1 - r * r))
@@ -163,43 +158,24 @@ def pearson_p(r: float, n: int) -> float:
 # ENSO state classification
 # =============================================================================
 
-def _classify_independent(values: np.ndarray) -> np.ndarray:
+def _classify_independent(values):
     states = np.zeros(values.shape, dtype=np.int8)
     states[values > ENSO_THRESHOLD] = 1
     states[values < -ENSO_THRESHOLD] = -1
     return states
 
 
-def _classify_hysteresis(values: np.ndarray) -> np.ndarray:
-    if ENSO_EXIT_THRESHOLD >= ENSO_THRESHOLD:
-        raise ValueError("ENSO_EXIT_THRESHOLD must be < ENSO_THRESHOLD.")
-    states = np.zeros(values.shape, dtype=np.int8)
-    cur = 0
-    for i, v in enumerate(values):
-        if not np.isfinite(v):
-            states[i] = cur
-            continue
-        if cur == 1:
-            cur = -1 if v < -ENSO_THRESHOLD else (0 if v < ENSO_EXIT_THRESHOLD else 1)
-        elif cur == -1:
-            cur = 1 if v > ENSO_THRESHOLD else (0 if v > -ENSO_EXIT_THRESHOLD else -1)
-        else:
-            cur = 1 if v > ENSO_THRESHOLD else (-1 if v < -ENSO_THRESHOLD else 0)
-        states[i] = cur
-    return states
-
-
-def _classify_extreme_independent(values: np.ndarray) -> np.ndarray:
+def _classify_extreme_independent(values):
     states = np.zeros(values.shape, dtype=np.int8)
     states[values >= EXTREME_ENSO_THRESHOLD] = 1
     states[values <= -EXTREME_ENSO_THRESHOLD] = -1
     return states
 
 
-def _run_states(states: np.ndarray, valid: np.ndarray) -> list[StateRun]:
-    runs: list[StateRun] = []
-    start: int | None = None
-    cur: int | None = None
+def _run_states(states, valid):
+    runs = []
+    start = None
+    cur = None
     for i, (s, ok) in enumerate(zip(states, valid)):
         if not ok:
             if start is not None and cur is not None:
@@ -217,18 +193,17 @@ def _run_states(states: np.ndarray, valid: np.ndarray) -> list[StateRun]:
     return runs
 
 
-def _is_extreme(run: StateRun, values: np.ndarray, event_state: int) -> bool:
+def _is_extreme(run, values, event_state):
     seg = values[run.start:run.end]
     return bool(np.nanmax(seg) >= EXTREME_ENSO_THRESHOLD if event_state == 1
                 else np.nanmin(seg) <= -EXTREME_ENSO_THRESHOLD)
 
 
 # =============================================================================
-# Transition counting — one unified pattern matcher
+# Transition counting
 # =============================================================================
 
-def _count_pattern(runs: list[StateRun], pattern: tuple[int, ...]) -> int:
-    """Count contiguous state-run windows matching *pattern* (e.g. (1, 0, 1))."""
+def _count_pattern(runs, pattern):
     n = len(pattern)
     return sum(
         1 for w in zip(*(runs[i:] for i in range(n)))
@@ -236,9 +211,7 @@ def _count_pattern(runs: list[StateRun], pattern: tuple[int, ...]) -> int:
     )
 
 
-def _count_extreme_pattern(runs: list[StateRun], values: np.ndarray,
-                           pattern: tuple[int, ...], event_state: int) -> int:
-    """Count pattern matches where the first and last runs are extreme."""
+def _count_extreme_pattern(runs, values, pattern, event_state):
     n = len(pattern)
     count = 0
     for w in zip(*(runs[i:] for i in range(n))):
@@ -249,19 +222,16 @@ def _count_extreme_pattern(runs: list[StateRun], values: np.ndarray,
     return count
 
 
-def _get_runs(values: np.ndarray, is_extreme: bool) -> list[StateRun]:
+def _get_runs(values, is_extreme):
     valid = np.isfinite(values)
-    if TRANSITION_METHOD == "hysteresis":
-        states = _classify_hysteresis(values)
-    elif is_extreme and TRANSITION_METHOD == "independent":
+    if is_extreme:
         states = _classify_extreme_independent(values)
     else:
         states = _classify_independent(values)
     return _run_states(states, valid)
 
 
-def _transition_frequency(values: np.ndarray) -> float:
-    """Compute transition frequency for TRANSITION_MODE."""
+def _transition_frequency(values):
     values = np.asarray(values, dtype=float).ravel()
     if values.size < 2:
         return math.nan
@@ -269,18 +239,23 @@ def _transition_frequency(values: np.ndarray) -> float:
     if valid[:-1].sum() == 0:
         return math.nan
 
-    label, is_ext, ev_state, pattern = MODE_PROPS[TRANSITION_MODE]
+    label, is_ext, ev_state, pattern, _arrow = MODE_PROPS[TRANSITION_MODE]
     runs = _get_runs(values, is_ext)
     count = (_count_extreme_pattern(runs, values, pattern, ev_state) if is_ext
              else _count_pattern(runs, pattern))
     return float(count / valid[:-1].sum())
 
 
-def _mode_label() -> str:
+def _mode_label():
     return MODE_PROPS[TRANSITION_MODE][0]
 
 
-def _transition_axis_label() -> str:
+def _transition_title():
+    arrow = MODE_PROPS[TRANSITION_MODE][4]
+    return f"Transition: {arrow}"
+
+
+def _transition_axis_label():
     if MODE_PROPS[TRANSITION_MODE][1]:
         return "Extreme ENSO-neutral-Extreme ENSO transition frequency"
     if TRANSITION_MODE.startswith("neutral_"):
@@ -288,7 +263,7 @@ def _transition_axis_label() -> str:
     return "ENSO event-neutral transition frequency"
 
 
-def _filename_token() -> str:
+def _filename_token():
     return {
         "el_nino_neutral_el_nino": "el_nino",
         "la_nina_neutral_la_nina": "la_nina",
@@ -299,7 +274,7 @@ def _filename_token() -> str:
     }[TRANSITION_MODE]
 
 
-def _parse_year(path: Path, fallback: int) -> tuple[str, float]:
+def _parse_year(path, fallback):
     m = re.search(r"(?<!\d)(\d{4})(?!\d)", path.stem)
     return (m.group(1), float(m.group(1))) if m else (path.stem, float(fallback))
 
@@ -308,7 +283,7 @@ def _parse_year(path: Path, fallback: int) -> tuple[str, float]:
 # Data collection
 # =============================================================================
 
-def _collect_source_points(source: dict) -> list[WindowPoint]:
+def _collect_source_points(source):
     dataset_id = source["id"]
     dataset_label = source["label"]
     pickle_dir = source["pickle_dir"]
@@ -338,7 +313,7 @@ def _collect_source_points(source: dict) -> list[WindowPoint]:
                 and abs(stored_acc - recalc) > ACC_WARNING_TOLERANCE):
             warnings.warn(
                 f"{p.name}: stored Pearson lead {LEAD} = {stored_acc:.3f} "
-                f"≠ recalculated ACC = {recalc:.3f}", RuntimeWarning)
+                f"!= recalculated ACC = {recalc:.3f}", RuntimeWarning)
 
         label, year = _parse_year(p, fi)
         points.append(WindowPoint(
@@ -359,20 +334,20 @@ def _collect_source_points(source: dict) -> list[WindowPoint]:
     return points
 
 
-def _collect_all(data_sources: list[dict]) -> list[WindowPoint]:
+def _collect_all(data_sources):
     all_pts = []
     for src in data_sources:
         all_pts.extend(_collect_source_points(src))
     return all_pts
 
 
-def _make_output_paths(fig_name: str) -> list[Path]:
+def _make_output_paths(fig_name):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    stem = f"{FIGURE_ID}_{FIGURE_NAME}_{fig_name}_{TRANSITION_METHOD}_{_filename_token()}_lead{LEAD}"
+    stem = f"{FIGURE_ID}_{FIGURE_NAME}_{fig_name}_{_filename_token()}_lead{LEAD}"
     return [OUTPUT_DIR / f"{stem}.{fmt}" for fmt in OUTPUT_FORMATS]
 
 
-def _dataset_order(points: list[WindowPoint]) -> list[str]:
+def _dataset_order(points):
     seen = []
     for pt in points:
         if pt.dataset not in seen:
@@ -380,18 +355,18 @@ def _dataset_order(points: list[WindowPoint]) -> list[str]:
     return seen
 
 
-def _points_for(points: list[WindowPoint], ds: str) -> list[WindowPoint]:
+def _points_for(points, ds):
     return [pt for pt in points if pt.dataset == ds]
 
 
-def _display_label(points: list[WindowPoint], ds_id: str) -> str:
+def _display_label(points, ds_id):
     for pt in points:
         if pt.dataset == ds_id:
             return pt.dataset_label
     raise KeyError(f"No label for {ds_id!r}")
 
 
-def _padded_limits(vals: np.ndarray, lo: float, hi: float) -> tuple[float, float]:
+def _padded_limits(vals, lo, hi):
     finite = vals[np.isfinite(vals)]
     rng = float(np.nanmax(finite)) - float(np.nanmin(finite))
     pad = max(rng * X_AXIS_PADDING_FRACTION, X_AXIS_MIN_PADDING)
@@ -399,43 +374,43 @@ def _padded_limits(vals: np.ndarray, lo: float, hi: float) -> tuple[float, float
             min(hi, float(np.nanmax(finite)) + pad))
 
 
-def _clean_ticks(limits: tuple[float, float], nbins: int = 6) -> np.ndarray:
+def _clean_ticks(limits, nbins=6):
     loc = MaxNLocator(nbins=nbins)
     ticks = loc.tick_values(*limits)
     ticks = ticks[(ticks >= limits[0]) & (ticks <= limits[1])]
     return ticks if ticks.size >= 2 else np.linspace(*limits, nbins)
 
 
-def _shared_axes(points: list[WindowPoint]) -> tuple:
+def _shared_axes(points):
     freq = np.asarray([pt.transition_frequency for pt in points], dtype=float)
     acc = np.asarray([pt.acc for pt in points], dtype=float)
     valid = np.isfinite(freq) & np.isfinite(acc)
     if valid.sum() < 2:
-        raise ValueError("Need ≥2 valid points for shared axes.")
+        raise ValueError("Need >=2 valid points for shared axes.")
     xl = _padded_limits(freq[valid], 0.0, 1.0)
     yl = _padded_limits(acc[valid], -1.0, 1.0)
     return xl, yl, _clean_ticks(xl), _clean_ticks(yl)
 
 
-def _panel_title(ds: str, idx: int) -> str:
-    return f"({chr(ord('a') + idx)}) {ds}"
+def _panel_title(ds, idx):
+    return f"$\\mathbf{{({chr(ord('a') + idx)})}}$ {ds}"
 
 
-def _header_note(fig: plt.Figure, show: bool) -> None:
-    if show and ANNOTATE_YEAR_RANGE is not None:
+def _add_transition_title(fig, show_year_note):
+    """Add transition info and optional year-range note below the y-axis label."""
+    note_text = _transition_title()
+    if show_year_note and ANNOTATE_YEAR_RANGE is not None:
         s, e = ANNOTATE_YEAR_RANGE
-        fig.text(0.5, 0.982, f"Open red circles: {s}–{e}",
-                 ha="center", va="center", fontsize=ANNOTATION_SIZE,
-                 color=PLOT_STYLE["highlight_color"])
+        note_text += f"   |   Open red circles: {s}-{e}"
+    fig.text(0.5, 0.012, note_text, ha="center", va="bottom",
+             fontsize=ANNOTATION_SIZE, color="#444444")
 
 
 # ---------------------------------------------------------------------------
 # Figure 1: transition frequency vs skill
 # ---------------------------------------------------------------------------
 
-def _draw_skill_panel(ax: plt.Axes, pts: list[WindowPoint], ds: str,
-                      yr_min: float, yr_max: float,
-                      xl, yl, xticks, yticks, idx: int):
+def _draw_skill_panel(ax, pts, ds, yr_min, yr_max, xl, yl, xticks, yticks, idx):
     freq = np.asarray([p.transition_frequency for p in pts], dtype=float)
     acc = np.asarray([p.acc for p in pts], dtype=float)
     yrs = np.asarray([p.year for p in pts], dtype=float)
@@ -481,15 +456,15 @@ def _draw_skill_panel(ax: plt.Axes, pts: list[WindowPoint], ds: str,
     return sc
 
 
-def _plot_skill_relationship(points: list[WindowPoint]) -> None:
+def _plot_skill_relationship(points):
     ds_list = _dataset_order(points)
     yrs = np.asarray([p.year for p in points], dtype=float)
     valid_yrs = yrs[np.isfinite(yrs)]
     xl, yl, xticks, yticks = _shared_axes(points)
 
-    fig = plt.figure(figsize=(PUB_FIG_WIDTH_IN, 10.5))
-    axes = source_panel_grid_5x2(fig, left=0.095, right=0.905, bottom=0.085,
-                                 top=0.97, wspace=0.12, hspace=0.26)
+    fig = plt.figure(figsize=(PUB_FIG_WIDTH_IN, 11.0))
+    axes = source_panel_grid_5x2(fig, left=0.095, right=0.905, bottom=0.080,
+                                 top=0.955, wspace=0.08, hspace=0.22)
 
     sc = None
     for i, ds in enumerate(ds_list):
@@ -499,13 +474,13 @@ def _plot_skill_relationship(points: list[WindowPoint]) -> None:
                                xl, yl, xticks, yticks, i) or sc
 
     if sc is not None:
-        style_colorbar(fig.colorbar(sc, ax=axes, fraction=0.018, pad=0.012),
+        style_colorbar(fig.colorbar(sc, ax=axes, fraction=0.014, pad=0.008),
                        label="Test-start year")
 
-    _header_note(fig, show=True)
+    _add_transition_title(fig, show_year_note=True)
     style_source_panel_axes_5x2(axes, n_visible=len(ds_list))
     add_shared_axis_labels(fig, xlabel=_transition_axis_label(),
-                           ylabel=f"ACC at lead {LEAD}",
+                           ylabel=f"ACC at lead {LEAD}-month",
                            xlabel_y=0.035, ylabel_x=0.027)
     save_publication_figure(fig, _make_output_paths("frequency_vs_skill"),
                             dpi=FIGURE_DPI, pad_inches=0.03, print_paths=True)
@@ -518,9 +493,7 @@ def _plot_skill_relationship(points: list[WindowPoint]) -> None:
 # Figure 2: transition frequency over time
 # ---------------------------------------------------------------------------
 
-def _draw_time_panel(ax: plt.Axes, pts: list[WindowPoint], ds: str,
-                     yr_min: float, yr_max: float, f_min: float, f_max: float,
-                     idx: int):
+def _draw_time_panel(ax, pts, ds, yr_min, yr_max, f_min, f_max, idx):
     freq = np.asarray([p.transition_frequency for p in pts], dtype=float)
     yrs = np.asarray([p.year for p in pts], dtype=float)
     valid = np.isfinite(yrs) & np.isfinite(freq)
@@ -548,7 +521,7 @@ def _draw_time_panel(ax: plt.Axes, pts: list[WindowPoint], ds: str,
     return sc
 
 
-def _plot_frequency_over_time(points: list[WindowPoint]) -> None:
+def _plot_frequency_over_time(points):
     ds_list = _dataset_order(points)
     yrs = np.asarray([p.year for p in points], dtype=float)
     freq = np.asarray([p.transition_frequency for p in points], dtype=float)
@@ -561,9 +534,9 @@ def _plot_frequency_over_time(points: list[WindowPoint]) -> None:
     f_min = max(0.0, float(np.nanmin(freq[valid])) - f_pad)
     f_max = min(1.0, float(np.nanmax(freq[valid])) + f_pad)
 
-    fig = plt.figure(figsize=(PUB_FIG_WIDTH_IN, 10.5))
-    axes = source_panel_grid_5x2(fig, left=0.095, right=0.905, bottom=0.085,
-                                 top=0.945, wspace=0.12, hspace=0.26)
+    fig = plt.figure(figsize=(PUB_FIG_WIDTH_IN, 11.0))
+    axes = source_panel_grid_5x2(fig, left=0.095, right=0.905, bottom=0.080,
+                                 top=0.93, wspace=0.08, hspace=0.22)
 
     sc = None
     for i, ds in enumerate(ds_list):
@@ -571,10 +544,10 @@ def _plot_frequency_over_time(points: list[WindowPoint]) -> None:
                               yr_min, yr_max, f_min, f_max, i) or sc
 
     if sc is not None:
-        style_colorbar(fig.colorbar(sc, ax=axes, fraction=0.018, pad=0.012),
+        style_colorbar(fig.colorbar(sc, ax=axes, fraction=0.014, pad=0.008),
                        label="Test-start year")
 
-    _header_note(fig, show=False)
+    _add_transition_title(fig, show_year_note=False)
     style_source_panel_axes_5x2(axes, n_visible=len(ds_list))
     add_shared_axis_labels(fig, xlabel="Test-start year",
                            ylabel=_transition_axis_label(),
@@ -586,7 +559,7 @@ def _plot_frequency_over_time(points: list[WindowPoint]) -> None:
     plt.close(fig)
 
 
-def main() -> None:
+def main():
     configure_publication_style()
     validate_data_sources(DATA_SOURCES)
     points = _collect_all(DATA_SOURCES)

@@ -66,8 +66,7 @@ _SOURCE_DEFINITIONS = [
     },
 ]
 
-def get_dl_sources(sample_size: int | None = None) -> list[dict]:
-    """Return independent DL source dictionaries with the shared display labels."""
+def get_dl_sources(sample_size=None):
     sources = []
     for definition in _SOURCE_DEFINITIONS:
         source = {
@@ -81,8 +80,7 @@ def get_dl_sources(sample_size: int | None = None) -> list[dict]:
     return sources
 
 
-def validate_pickle_source_dirs(sources: list[dict]) -> None:
-    """Validate that every configured source has an existing pickle directory."""
+def validate_pickle_source_dirs(sources):
     for source in sources:
         pickle_dir = Path(source["pickle_dir"])
         if not pickle_dir.exists():
@@ -91,8 +89,7 @@ def validate_pickle_source_dirs(sources: list[dict]) -> None:
             raise FileNotFoundError(f"No pickle files found in: {pickle_dir}")
 
 
-def parse_start_year(path: str | Path) -> int:
-    """Extract the 4-digit test-start year from a pickle filename."""
+def parse_start_year(path):
     path = Path(path)
     match = re.search(r"_(\d{4})_", path.name)
     if match is None:
@@ -100,45 +97,38 @@ def parse_start_year(path: str | Path) -> int:
     return int(match.group(1))
 
 
-def parse_input_months(path: str | Path, default: int = 6) -> int:
-    """Extract input-window length from a pickle filename, or return default."""
+def parse_input_months(path, default=6):
     path = Path(path)
     match = re.search(r"input(\d+)", path.name)
     return int(match.group(1)) if match is not None else int(default)
 
 
-def list_pickle_files(pickle_dir: str | Path) -> list[Path]:
-    """Return sorted pickle files from one directory."""
+def list_pickle_files(pickle_dir):
     pickle_dir = Path(pickle_dir)
     if not pickle_dir.exists():
         raise FileNotFoundError(f"Pickle directory does not exist: {pickle_dir}")
-
     pickle_files = sorted(pickle_dir.glob("*.pickle"))
     if not pickle_files:
         raise FileNotFoundError(f"No pickle files found in: {pickle_dir}")
     return pickle_files
 
 
-def list_pickle_files_by_year(pickle_dir: str | Path) -> dict[int, Path]:
-    """Return one pickle path per test-start year."""
-    file_map: dict[int, list[Path]] = {}
+def list_pickle_files_by_year(pickle_dir):
+    file_map = {}
     for path in list_pickle_files(pickle_dir):
         year = parse_start_year(path)
         file_map.setdefault(year, []).append(path)
     return {year: sorted(paths)[0] for year, paths in sorted(file_map.items())}
 
 
-def load_prediction_arrays(path: str | Path) -> tuple[np.ndarray, np.ndarray]:
-    """Load and validate prediction and observation arrays from one pickle file."""
+def load_prediction_arrays(path):
     path = Path(path)
     with path.open("rb") as handle:
         data = pickle.load(handle)
-
     if not isinstance(data, dict):
         raise ValueError(f"{path.name}: expected a dict, got {type(data).__name__}")
     if "predict_value" not in data or "real_value" not in data:
         raise KeyError(f"{path.name}: missing predict_value or real_value")
-
     prediction = np.asarray(data["predict_value"], dtype=float)
     observation = np.asarray(data["real_value"], dtype=float)
     if prediction.shape != observation.shape:
@@ -152,21 +142,14 @@ def load_prediction_arrays(path: str | Path) -> tuple[np.ndarray, np.ndarray]:
 
 
 def load_source_forecast_table(
-    source: dict,
-    base_year: int,
-    input_months: int | None = None,
-    leads: list[int] | np.ndarray | None = None,
-    value_names: tuple[str, str] = ("pred", "real"),
-) -> pd.DataFrame:
-    """
-    Load one source into a long-format forecast table.
-
-    The table contains one row per target month and lead, with both ``abs_month``
-    and ``target_month`` set to the zero-based absolute target-month index.
-    """
+    source,
+    base_year,
+    input_months=None,
+    leads=None,
+    value_names=("pred", "real"),
+):
     prediction_name, observation_name = value_names
     records = []
-
     for pickle_path in list_pickle_files(source["pickle_dir"]):
         try:
             start_year = parse_start_year(pickle_path)
@@ -181,7 +164,6 @@ def load_source_forecast_table(
                 f"{pickle_path.name}: input window is {file_input_months} months, "
                 f"but input_months is {input_months}."
             )
-
         prediction, observation = load_prediction_arrays(pickle_path)
         available_leads = np.arange(1, prediction.shape[1] + 1)
         selected_leads = available_leads if leads is None else np.asarray(leads, dtype=int)
@@ -192,7 +174,6 @@ def load_source_forecast_table(
                 f"{pickle_path.name}: requested lead range {selected_leads.min()}-"
                 f"{selected_leads.max()}, but only {prediction.shape[1]} leads are available."
             )
-
         lead_indices = selected_leads - 1
         selected_prediction = prediction[:, lead_indices]
         selected_observation = observation[:, lead_indices]
@@ -219,10 +200,8 @@ def load_source_forecast_table(
                 }
             )
         )
-
     if not records:
-        raise ValueError(f"No usable pickle files with parseable years in: {source['pickle_dir']}")
-
+        raise ValueError(f"No usable pickle files in: {source['pickle_dir']}")
     table = pd.concat(records, ignore_index=True)
     table["year"] = int(base_year) + table["abs_month"] // 12
     table["month"] = table["abs_month"] % 12 + 1

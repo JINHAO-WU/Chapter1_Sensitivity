@@ -23,12 +23,10 @@ from plot_style import (
     COMPACT_TICK_WIDTH,
     EVENT_COLORS,
     LEGEND_SIZE,
-    TITLE_SIZE,
     VALUE_LABEL_SIZE,
     add_shared_axis_labels,
     configure_publication_style,
     disable_axis_grid,
-    panel_title,
     save_publication_figure,
     style_boxed_axes,
     style_colorbar,
@@ -36,10 +34,6 @@ from plot_style import (
     validate_data_sources,
 )
 
-
-# =============================================================================
-# User configuration
-# =============================================================================
 
 BASE_YEAR = 1871
 FIGURE_ID = "G"
@@ -50,14 +44,12 @@ OUTPUT_FORMATS = ("png", "pdf")
 PUB_FIG_WIDTH_MM = 183
 PUB_FIG_HEIGHT_MM = 270
 
-LEADS = [6]             # None = use all available leads
-N_TYPE = 5              # 3, 5, or 7
-CLASS_METRIC = "f1"     # "recall", "precision", or "f1"
+LEADS = [6]
+N_TYPE = 5
+CLASS_METRIC = "f1"
 
 DATA_SOURCES = get_dl_sources()
 
-# (order, thresholds): thresholds are (>= value, label) pairs checked top-down;
-# the last label is the fallback
 ENSO_CLASSIFIERS = {
     3: (
         ["EN", "N", "LN"],
@@ -78,8 +70,7 @@ ENSO_CLASSIFIERS = {
 }
 
 
-def classify_nino(value: float, n_type: int) -> str:
-    """Classify a Niño3.4 value using the configured threshold table."""
+def classify_nino(value, n_type):
     _, thresholds, fallback = ENSO_CLASSIFIERS[n_type]
     for threshold, label in thresholds:
         if value >= threshold:
@@ -87,13 +78,11 @@ def classify_nino(value: float, n_type: int) -> str:
     return fallback
 
 
-def event_order(n_type: int) -> list[str]:
-    """Return the ordered event labels for the selected category count."""
+def event_order(n_type):
     return ENSO_CLASSIFIERS[n_type][0]
 
 
-def wrap_long_label(label: str, max_len: int = 27) -> str:
-    """Wrap long source labels at plus signs so titles fit inside panels."""
+def wrap_long_label(label, max_len=27):
     if len(label) <= max_len or "+" not in label:
         return label
     parts = label.split("+")
@@ -104,8 +93,7 @@ def wrap_long_label(label: str, max_len: int = 27) -> str:
     return wrapped
 
 
-def _class_score(confusion: np.ndarray, metric: str) -> list[float]:
-    """Compute per-class precision / recall / F1 from a raw confusion matrix."""
+def _class_score(confusion, metric):
     scores = []
     for i in range(confusion.shape[0]):
         tp = confusion[i, i]
@@ -113,7 +101,6 @@ def _class_score(confusion: np.ndarray, metric: str) -> list[float]:
         predicted = confusion[:, i].sum()
         prec = tp / predicted if predicted else 0.0
         rec = tp / actual if actual else np.nan
-
         if metric == "precision":
             score = prec if actual else np.nan
         elif metric == "recall":
@@ -128,15 +115,13 @@ def _class_score(confusion: np.ndarray, metric: str) -> list[float]:
     return scores
 
 
-def compute_metrics(df: pd.DataFrame, n_type: int, metric: str, leads: list[int] | None) -> dict:
-    """Return {lead: {confusion, scores, n_samples}} for one data source."""
+def compute_metrics(df, n_type, metric, leads):
     order = event_order(n_type)
     available = sorted(int(l) for l in df["leading"].unique())
     selected = available if leads is None else list(leads)
     missing = sorted(set(selected) - set(available))
     if missing:
-        raise ValueError(f"Requested leads {missing} not available. Available: {available}")
-
+        raise ValueError(f"Requested leads {missing} not available.")
     results = {}
     for lead in selected:
         monthly = (
@@ -147,7 +132,6 @@ def compute_metrics(df: pd.DataFrame, n_type: int, metric: str, leads: list[int]
         )
         monthly["real_class"] = monthly["real"].apply(lambda v: classify_nino(v, n_type))
         monthly["pred_class"] = monthly["pred"].apply(lambda v: classify_nino(v, n_type))
-
         raw = confusion_matrix(monthly["real_class"], monthly["pred_class"], labels=order)
         norm = confusion_matrix(monthly["real_class"], monthly["pred_class"], labels=order, normalize="true")
         results[lead] = {
@@ -158,18 +142,17 @@ def compute_metrics(df: pd.DataFrame, n_type: int, metric: str, leads: list[int]
     return results
 
 
-def plot_figure(dataset_results: list[dict], lead: int, order: list[str], output_base: Path) -> list[Path]:
-    """Create one multi-panel figure with confusion matrices and class-metric bars."""
+def plot_figure(dataset_results, lead, order, output_base):
     fig = plt.figure(
         figsize=(PUB_FIG_WIDTH_MM / 25.4, PUB_FIG_HEIGHT_MM / 25.4),
         facecolor="white",
     )
-    outer = fig.add_gridspec(5, 2, left=0.145, right=0.985, bottom=0.075, top=0.985,
-                             wspace=0.12, hspace=0.18)
+    outer = fig.add_gridspec(5, 2, left=0.100, right=0.985, bottom=0.058, top=0.985,
+                             wspace=0.09, hspace=0.14)
     panels = [outer[r, c] for r in range(5) for c in range(2)]
 
     x_labels = [e.replace(" ", "\n") for e in order]
-    y_labels = [e for e in order]
+    y_labels = [e.replace(" ", "\n") for e in order]
     metric_label = {"recall": "Recall", "precision": "Precision", "f1": "F1-score"}[CLASS_METRIC]
     x_pos = np.arange(len(order)) + 0.5
     image = None
@@ -180,8 +163,9 @@ def plot_figure(dataset_results: list[dict], lead: int, order: list[str], output
         scores = metrics["scores"]
         bottom_row = i >= 8
         right_col = i % 2 == 1
-        title = panel_title(chr(ord("a") + i), wrap_long_label(result["label"]))
-        inner = panel_spec.subgridspec(1, 2, width_ratios=[1.0, 1.08], wspace=0.12)
+        label = result["label"]
+        title = f"$\\mathbf{{({chr(ord('a') + i)})}}$ {wrap_long_label(label)}"
+        inner = panel_spec.subgridspec(1, 2, width_ratios=[1.0, 1.08], wspace=0.10)
 
         ax_cm = fig.add_subplot(inner[0, 0])
         ax_bar = fig.add_subplot(inner[0, 1])
@@ -221,18 +205,19 @@ def plot_figure(dataset_results: list[dict], lead: int, order: list[str], output
                            length=COMPACT_TICK_LENGTH, width=COMPACT_TICK_WIDTH, pad=COMPACT_TICK_PAD,
                            labelleft=not right_col)
         ax_bar.tick_params(axis="x", length=COMPACT_TICK_LENGTH, width=COMPACT_TICK_WIDTH, pad=COMPACT_TICK_PAD)
-        ax_bar.set_title(metric_label, fontsize=LEGEND_SIZE, pad=2)
+        # F1-score title only on first panel
+        if not i:
+            ax_bar.set_title(metric_label, fontsize=LEGEND_SIZE, pad=2)
         disable_axis_grid(ax_bar)
         ax_bar.set_axisbelow(True)
         style_open_axes(ax_bar)
 
-    add_shared_axis_labels(fig, ylabel="Real", ylabel_x=0.012, fontsize=AXIS_LABEL_SIZE)
+    add_shared_axis_labels(fig, ylabel="Real", ylabel_x=0.008, fontsize=AXIS_LABEL_SIZE)
 
-    # Colorbar spanning leftmost to rightmost panel width
     fig.canvas.draw()
     x0 = outer[0, 0].get_position(fig).x0
     x1 = outer[0, 1].get_position(fig).x1
-    cax = fig.add_axes([x0, 0.015, x1 - x0, 0.012])
+    cax = fig.add_axes([x0, 0.010, x1 - x0, 0.012])
     cbar = fig.colorbar(image, cax=cax, orientation="horizontal")
     cbar.set_ticks([0.0, 0.5, 1.0])
     style_colorbar(cbar, tick_length=1.8, tick_pad=1.2)
@@ -246,7 +231,7 @@ def plot_figure(dataset_results: list[dict], lead: int, order: list[str], output
     return saved
 
 
-def main() -> None:
+def main():
     configure_publication_style()
     validate_data_sources(DATA_SOURCES)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
