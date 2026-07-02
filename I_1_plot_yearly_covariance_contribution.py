@@ -318,7 +318,7 @@ def main() -> None:
     x_edges = np.arange(year_min, year_max + 2)
     y_edges = np.arange(N_SOURCES, -1, -1)
 
-    year_step = 20
+    year_step = 10
     year_ticks = np.arange(
         ((year_min + year_step - 1) // year_step) * year_step,
         year_max + 1, year_step,
