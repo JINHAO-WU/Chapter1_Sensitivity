@@ -22,14 +22,13 @@ from A_basic_sources import (
     parse_start_year,
 )
 from plot_style import (
-    AXIS_LABEL_SIZE,
-    COLORBAR_TICK_SIZE,
-    COMPACT_TICK_LABEL_SIZE,
-    LEGEND_SIZE,
+    DEFAULT_FIGURE_DPI,
+    I_COVARIANCE_STYLE,
     NMME_COLORS,
-    PANEL_LABEL_SIZE,
     add_shared_axis_labels,
     configure_publication_style,
+    figure_output_paths,
+    mm_to_inches,
     panel_title,
     save_publication_figure,
     source_panel_grid_5x2,
@@ -53,10 +52,7 @@ FIGURE_ID = "I"
 FIGURE_NAME = "yearly_covariance_contribution"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 OUTPUT_BASENAME = f"{FIGURE_ID}_{FIGURE_NAME}_lead6"
-OUTPUT_FORMATS = ("png", "pdf")
-FIGURE_DPI = 600
-FIGURE_WIDTH_INCH = 7.2
-FIGURE_HEIGHT_INCH = 10.3
+FIGURE_DPI = DEFAULT_FIGURE_DPI
 
 OBSERVATION_COLOR = "#000000"
 PREDICTION_COVARIANCE_COLOR = NMME_COLORS[3]
@@ -208,15 +204,18 @@ y_min, y_max = float(np.nanmin(all_contributions)), float(np.nanmax(all_contribu
 y_padding = max(0.001, 0.05 * (y_max - y_min))
 y_limits = (y_min - y_padding, y_max + y_padding)
 
-figure = plt.figure(figsize=(FIGURE_WIDTH_INCH, FIGURE_HEIGHT_INCH))
+figure = plt.figure(figsize=(
+    mm_to_inches(I_COVARIANCE_STYLE["line_figure_width_mm"]),
+    mm_to_inches(I_COVARIANCE_STYLE["line_figure_height_mm"]),
+))
 axes = source_panel_grid_5x2(
     figure,
     left=0.12,
     right=0.98,
-    bottom=0.105,
+    bottom=0.110,
     top=0.975,
     wspace=0.12,
-    hspace=0.22,
+    hspace=0.20,
 )
 
 for panel_index, (axis, result) in enumerate(zip(axes, results)):
@@ -225,21 +224,21 @@ for panel_index, (axis, result) in enumerate(zip(axes, results)):
         annual["year"],
         annual["observation_variance_contribution"],
         color=OBSERVATION_COLOR,
-        linewidth=1.35,
+        linewidth=I_COVARIANCE_STYLE["line_width"],
         label="Observation variance",
     )
     axis.plot(
         annual["year"],
         annual["prediction_observation_covariance_contribution"],
         color=PREDICTION_COVARIANCE_COLOR,
-        linewidth=1.35,
+        linewidth=I_COVARIANCE_STYLE["line_width"],
         label="cov(ensmean, observation)",
     )
-    axis.axhline(0, color="0.70", linewidth=0.65, zorder=0)
+    axis.axhline(0, color="0.70", linewidth=I_COVARIANCE_STYLE["reference_line_width"], zorder=0)
     axis.set_title(
         panel_title(chr(ord("a") + panel_index), wrap_long_panel_label(result["label"])),
         loc="left",
-        fontsize=COMPACT_TICK_LABEL_SIZE,
+        fontsize=I_COVARIANCE_STYLE["panel_label_size"],
         fontweight="bold",
         pad=4,
     )
@@ -251,7 +250,7 @@ for panel_index, (axis, result) in enumerate(zip(axes, results)):
         transform=axis.transAxes,
         ha="right",
         va="top",
-        fontsize=COLORBAR_TICK_SIZE,
+        fontsize=I_COVARIANCE_STYLE["annotation_size"],
     )
     axis.set_xlim(year_min, year_max)
     axis.set_ylim(*y_limits)
@@ -264,18 +263,18 @@ add_shared_axis_labels(
     ylabel="Annual covariance contribution",
     xlabel_y=0.058,
     ylabel_x=0.025,
-    fontsize=AXIS_LABEL_SIZE,
+    fontsize=I_COVARIANCE_STYLE["axis_label_size"],
 )
 
 figure.legend(
     handles=[
-        Line2D([0], [0], color=OBSERVATION_COLOR, linewidth=1.5, label="var(obs)"),
+        Line2D([0], [0], color=OBSERVATION_COLOR, linewidth=1.35, label="var(obs)"),
         Line2D([0], [0], color=PREDICTION_COVARIANCE_COLOR,
-               linewidth=1.5, label="cov(ensmean, obs)"),
+               linewidth=1.35, label="cov(ensmean, obs)"),
     ],
     loc="upper center",
     frameon=False,
-    fontsize=LEGEND_SIZE,
+    fontsize=I_COVARIANCE_STYLE["legend_size"],
     ncol=2,
     bbox_to_anchor=(0.5, 1.008),
 )
@@ -285,16 +284,16 @@ figure.text(
     f"Lead {LEAD} months; ensemble-mean duplicate forecasts",
     ha="center",
     va="center",
-    fontsize=LEGEND_SIZE,
+    fontsize=I_COVARIANCE_STYLE["legend_size"],
 )
 for axis in axes:
     axis.set_xticks(np.arange(((year_min + 19) // 20) * 20, year_max + 1, 20))
-    axis.tick_params(axis="x", labelsize=COMPACT_TICK_LABEL_SIZE)
+    axis.tick_params(axis="both", labelsize=I_COVARIANCE_STYLE["tick_label_size"])
 
 output_base = OUTPUT_DIR / OUTPUT_BASENAME
 saved_paths = save_publication_figure(
     figure,
-    [output_base.with_suffix(f".{output_format}") for output_format in OUTPUT_FORMATS],
+    figure_output_paths(output_base),
     dpi=FIGURE_DPI,
     bbox_inches=None,
     pad_inches=0.02,

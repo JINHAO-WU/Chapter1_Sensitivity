@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -9,9 +11,18 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from plot_style import (
+    A_SAMPLING_STYLE,
     AXES_LINEWIDTH,
+    B_LEAD_CORRELATION_STYLE,
+    C_TARGET_HEATMAP_STYLE,
+    D_ENSO_PHASE_STYLE,
+    E_TRANSITION_STYLE,
+    G_CLASSIFICATION_STYLE,
+    H_VARIANCE_SEASONALITY_STYLE,
+    I_COVARIANCE_STYLE,
     COLORBAR_TICK_SIZE,
     DATASET_COLORS,
+    DEFAULT_OUTPUT_FORMATS,
     FONT_SANS_SERIF,
     LIGHT_GRID_COLOR,
     TICK_LENGTH,
@@ -19,6 +30,8 @@ from plot_style import (
     configure_publication_style,
     dataset_color,
     disable_axis_grid,
+    figure_output_paths,
+    mm_to_inches,
     panel_title,
     reorder_legend_handles_by_row,
     source_panel_grid_5x2,
@@ -74,8 +87,8 @@ def test_dataset_ids_titles_and_source_layout() -> None:
 
     assert set(DATASET_COLORS) == {f"source_{index}" for index in range(1, 11)}
     assert dataset_color("source_1") == "#000000"
-    assert dataset_color("source_8") == "#BBBBBB"
-    assert dataset_color("source_10") == "#332288"
+    assert dataset_color("source_8") == "#CC79A7"
+    assert dataset_color("source_10") == "#17BECF"
     assert dataset_color(sources[0]["id"]) == DATASET_COLORS["source_1"]
     assert panel_title("a", "SST (NOAA)") == "(a) SST (NOAA)"
 
@@ -118,3 +131,34 @@ def test_legend_reordering_reads_by_row() -> None:
         "source_8",
     ]
     assert reordered_handles == [labels.index(label) for label in reordered_labels]
+
+
+def test_publication_output_helpers_and_a_preset() -> None:
+    """Validate small shared helpers used by Figure A without changing other figures."""
+    assert mm_to_inches(25.4) == 1.0
+    assert DEFAULT_OUTPUT_FORMATS == ("png", "pdf")
+    assert figure_output_paths(Path("figure_a")) == [
+        Path("figure_a.png"),
+        Path("figure_a.pdf"),
+    ]
+    assert A_SAMPLING_STYLE["legend_size"] < A_SAMPLING_STYLE["axis_label_size"]
+    assert A_SAMPLING_STYLE["small_tick_label_size"] <= A_SAMPLING_STYLE["tick_label_size"]
+    assert B_LEAD_CORRELATION_STYLE["legend_size"] < B_LEAD_CORRELATION_STYLE["axis_label_size"]
+    assert B_LEAD_CORRELATION_STYLE["marker_size"] < 4.0
+    assert C_TARGET_HEATMAP_STYLE["tick_label_size"] < C_TARGET_HEATMAP_STYLE["axis_label_size"]
+    assert C_TARGET_HEATMAP_STYLE["colorbar_tick_size"] <= C_TARGET_HEATMAP_STYLE["colorbar_label_size"]
+    assert D_ENSO_PHASE_STYLE["legend_size"] < D_ENSO_PHASE_STYLE["axis_label_size"]
+    assert D_ENSO_PHASE_STYLE["marker_size"] < 4.0
+    assert D_ENSO_PHASE_STYLE["figure_width_mm"] == 183
+    assert E_TRANSITION_STYLE["point_size"] < 32
+    assert E_TRANSITION_STYLE["annotation_size"] < E_TRANSITION_STYLE["axis_label_size"]
+    assert E_TRANSITION_STYLE["figure_width_mm"] == 183
+    assert G_CLASSIFICATION_STYLE["cell_label_size"] < G_CLASSIFICATION_STYLE["axis_label_size"]
+    assert G_CLASSIFICATION_STYLE["bar_edge_width"] < 0.7
+    assert G_CLASSIFICATION_STYLE["figure_width_mm"] == 183
+    assert H_VARIANCE_SEASONALITY_STYLE["forecast_line_width"] < H_VARIANCE_SEASONALITY_STYLE["observation_line_width"]
+    assert H_VARIANCE_SEASONALITY_STYLE["legend_size"] < H_VARIANCE_SEASONALITY_STYLE["axis_label_size"]
+    assert H_VARIANCE_SEASONALITY_STYLE["figure_width_mm"] == 183
+    assert I_COVARIANCE_STYLE["line_figure_width_mm"] == 183
+    assert I_COVARIANCE_STYLE["heatmap_figure_width_mm"] == 183
+    assert I_COVARIANCE_STYLE["tick_label_size"] < I_COVARIANCE_STYLE["axis_label_size"]

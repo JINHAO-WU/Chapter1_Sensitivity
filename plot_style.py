@@ -41,6 +41,159 @@ LIGHT_GRID_COLOR = "#D9D9D9"
 LIGHT_GRID_LINEWIDTH = 0.55
 LIGHT_GRID_ALPHA = 0.8
 
+# Shared publication export and dimension defaults.
+MM_PER_INCH = 25.4
+DEFAULT_FIGURE_DPI = 600
+DEFAULT_OUTPUT_FORMATS = ("png", "pdf")
+
+# Figure A uses a compact 183-mm publication layout. Keep this preset local to
+# the sampling-correlation figures so later figures can choose their own scale.
+A_SAMPLING_STYLE = {
+    "axis_label_size": 9.0,
+    "tick_label_size": 8.0,
+    "panel_label_size": 8.5,
+    "legend_size": 7.0,
+    "small_tick_label_size": 7.0,
+    "line_width": 1.0,
+    "comparison_line_width": 1.45,
+    "reference_line_width": 0.7,
+    "lead_colors": (
+        "#f28e8c",
+        "#4c9be8",
+        "#59a14f",
+        "#af7aa1",
+        "#edc948",
+        "#76b7b2",
+    ),
+}
+
+# Figure B is a single lead-correlation line plot. Keep markers visible but
+# smaller than the current draft so the dense legend does not dominate.
+B_LEAD_CORRELATION_STYLE = {
+    "axis_label_size": 8.5,
+    "tick_label_size": 8.0,
+    "legend_size": 6.8,
+    "line_width": 1.25,
+    "marker_size": 3.0,
+    "zero_line_width": 0.6,
+    "reference_line_width": 0.8,
+}
+
+# Figure C is a dense 10-panel heatmap. Use compact typography so the panel
+# titles and shared axis labels support the matrices without overpowering them.
+C_TARGET_HEATMAP_STYLE = {
+    "axis_label_size": 8.5,
+    "title_size": 7.8,
+    "tick_label_size": 6.6,
+    "colorbar_label_size": 7.0,
+    "colorbar_tick_size": 6.3,
+    "cell_label_size": 5.4,
+    "tick_length": 1.8,
+    "tick_width": 0.5,
+    "tick_pad": 1.4,
+}
+
+# Figure D is a two-panel lead-bias line figure. Keep the panel spacing compact
+# and the markers secondary to the lead-dependent trajectories.
+D_ENSO_PHASE_STYLE = {
+    "axis_label_size": 8.8,
+    "tick_label_size": 8.0,
+    "panel_label_size": 8.8,
+    "legend_size": 6.8,
+    "line_width": 1.25,
+    "legend_line_width": 1.45,
+    "marker_size": 3.0,
+    "zero_line_width": 0.65,
+    "grid_line_width": 0.55,
+    "tick_length": 2.4,
+    "tick_width": 0.6,
+    "figure_width_mm": 183,
+    "figure_height_mm": 132,
+}
+
+# Figure E is a dense 10-panel scatter/time-series figure. Keep annotations and
+# point outlines legible without letting them compete with the shared trends.
+E_TRANSITION_STYLE = {
+    "axis_label_size": 8.7,
+    "tick_label_size": 7.6,
+    "panel_label_size": 8.2,
+    "annotation_size": 6.5,
+    "colorbar_label_size": 6.8,
+    "colorbar_tick_size": 6.3,
+    "colorbar_width": 0.010,
+    "colorbar_pad": 0.008,
+    "point_size": 24,
+    "highlight_point_size": 54,
+    "point_edge_width": 0.28,
+    "highlight_edge_width": 0.85,
+    "fit_line_width": 0.85,
+    "time_line_width": 0.85,
+    "grid_line_width": 0.38,
+    "tick_length": 2.2,
+    "tick_width": 0.55,
+    "figure_width_mm": 183,
+    "figure_height_mm": 270,
+}
+
+# Figure G combines small confusion matrices with per-class F1 bars. The
+# annotation hierarchy needs to stay compact so both halves of each panel read
+# as one unit.
+G_CLASSIFICATION_STYLE = {
+    "axis_label_size": 8.5,
+    "tick_label_size": 6.2,
+    "panel_label_size": 7.5,
+    "metric_title_size": 7.0,
+    "cell_label_size": 5.2,
+    "bar_label_size": 5.2,
+    "colorbar_tick_size": 6.0,
+    "tick_length": 1.8,
+    "tick_width": 0.5,
+    "tick_pad": 1.2,
+    "bar_edge_width": 0.55,
+    "heatmap_colorbar_height": 0.010,
+    "figure_width_mm": 183,
+    "figure_height_mm": 270,
+}
+
+# Figure H overlays many seasonal lead trajectories in each source panel. Keep
+# the forecast lines light enough for the observed annual cycle to remain clear.
+H_VARIANCE_SEASONALITY_STYLE = {
+    "axis_label_size": 8.8,
+    "tick_label_size": 7.0,
+    "panel_label_size": 8.0,
+    "legend_size": 7.2,
+    "marker_legend_size": 6.8,
+    "forecast_line_width": 1.15,
+    "observation_line_width": 1.65,
+    "forecast_marker_size": 2.4,
+    "marker_edge_width": 0.60,
+    "forecast_alpha": 0.82,
+    "tick_length": 2.0,
+    "tick_width": 0.55,
+    "tick_pad": 1.4,
+    "figure_width_mm": 183,
+    "figure_height_mm": 270,
+}
+
+# Figure I compares annual covariance contributions. The line-panel and
+# heatmap variants share typography but keep separate aspect ratios.
+I_COVARIANCE_STYLE = {
+    "axis_label_size": 8.6,
+    "tick_label_size": 6.8,
+    "panel_label_size": 7.6,
+    "annotation_size": 6.4,
+    "legend_size": 7.0,
+    "line_width": 1.15,
+    "reference_line_width": 0.55,
+    "colorbar_label_size": 7.0,
+    "colorbar_tick_size": 6.3,
+    "colorbar_width": 0.010,
+    "line_figure_width_mm": 183,
+    "line_figure_height_mm": 255,
+    "heatmap_figure_width_mm": 183,
+    "heatmap_figure_height_mm": 150,
+}
+
 # Wong (2011) palette — distinguishable, colourblind-friendly, B&W-printable.
 DATASET_COLORS = {
     "source_1":  "#000000",
@@ -281,6 +434,19 @@ def add_shared_axis_labels(
         fig.supxlabel(xlabel, y=xlabel_y, fontsize=fontsize)
     if ylabel:
         fig.supylabel(ylabel, x=ylabel_x, fontsize=fontsize)
+
+
+def mm_to_inches(value_mm: float) -> float:
+    """Convert millimetres to inches for Matplotlib figure sizes."""
+    return float(value_mm) / MM_PER_INCH
+
+
+def figure_output_paths(
+    output_base: Path,
+    formats: tuple[str, ...] = DEFAULT_OUTPUT_FORMATS,
+) -> list[Path]:
+    """Return output paths with the requested publication file extensions."""
+    return [output_base.with_suffix(f".{output_format}") for output_format in formats]
 
 
 def save_publication_figure(

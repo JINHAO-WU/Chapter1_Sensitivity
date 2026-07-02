@@ -20,10 +20,12 @@ from scipy import stats
 
 from A_basic_sources import FIGURE_ROOT, get_dl_sources, list_pickle_files
 from plot_style import (
-    ANNOTATION_SIZE,
-    TICK_LABEL_SIZE,
+    DEFAULT_FIGURE_DPI,
+    E_TRANSITION_STYLE,
     add_shared_axis_labels,
     configure_publication_style,
+    figure_output_paths,
+    mm_to_inches,
     save_publication_figure,
     source_panel_grid_5x2,
     style_colorbar,
@@ -41,10 +43,7 @@ from plot_style import (
 FIGURE_ID = "E"
 FIGURE_NAME = "enso_transition_frequency_vs_skill"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
-FIGURE_DPI = 600
-OUTPUT_FORMATS = ("png", "pdf")
-PUB_FIG_WIDTH_MM = 183
-PUB_FIG_WIDTH_IN = PUB_FIG_WIDTH_MM / 25.4
+FIGURE_DPI = DEFAULT_FIGURE_DPI
 
 MAKE_SKILL_RELATIONSHIP_PLOT = True
 MAKE_TRANSITION_TIME_PLOT = True
@@ -68,7 +67,7 @@ DATA_SOURCES = get_dl_sources()
 
 PLOT_STYLE = {
     "cmap": "cividis",
-    "point_size": 32,
+    "point_size": E_TRANSITION_STYLE["point_size"],
     "point_alpha": 0.92,
     "point_edge_color": "#303030",
     "fit_line_color": "#1f1f1f",
@@ -344,7 +343,7 @@ def _collect_all(data_sources):
 def _make_output_paths(fig_name):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     stem = f"{FIGURE_ID}_{FIGURE_NAME}_{fig_name}_{_filename_token()}_lead{LEAD}"
-    return [OUTPUT_DIR / f"{stem}.{fmt}" for fmt in OUTPUT_FORMATS]
+    return figure_output_paths(OUTPUT_DIR / stem)
 
 
 def _dataset_order(points):
@@ -402,8 +401,28 @@ def _add_transition_title(fig, show_year_note):
     if show_year_note and ANNOTATE_YEAR_RANGE is not None:
         s, e = ANNOTATE_YEAR_RANGE
         note_text += f"   |   Open red circles: {s}-{e}"
-    fig.text(0.5, 0.012, note_text, ha="center", va="bottom",
-             fontsize=ANNOTATION_SIZE, color="#444444")
+    fig.text(0.5, 0.010, note_text, ha="center", va="bottom",
+             fontsize=E_TRANSITION_STYLE["annotation_size"], color="#444444")
+
+
+def _add_year_colorbar(fig, mappable, axes):
+    """Place a longer year colorbar beside the middle rows of the 5x2 layout."""
+    upper_pos = axes[3].get_position(fig)
+    middle_pos = axes[5].get_position(fig)
+    lower_pos = axes[7].get_position(fig)
+    cax = fig.add_axes([
+        middle_pos.x1 + E_TRANSITION_STYLE["colorbar_pad"],
+        lower_pos.y0,
+        E_TRANSITION_STYLE["colorbar_width"],
+        upper_pos.y1 - lower_pos.y0,
+    ])
+    colorbar = fig.colorbar(mappable, cax=cax)
+    style_colorbar(
+        colorbar,
+        label="Test-start year",
+        fontsize=E_TRANSITION_STYLE["colorbar_label_size"],
+        tick_labelsize=E_TRANSITION_STYLE["colorbar_tick_size"],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -418,8 +437,13 @@ def _draw_skill_panel(ax, pts, ds, yr_min, yr_max, xl, yl, xticks, yticks, idx):
 
     if valid.sum() < 2:
         ax.text(0.5, 0.5, "< 2 valid points", transform=ax.transAxes,
-                ha="center", va="center", fontsize=TICK_LABEL_SIZE)
-        ax.set_title(_panel_title(_display_label(pts, ds), idx), loc="left")
+                ha="center", va="center", fontsize=E_TRANSITION_STYLE["tick_label_size"])
+        ax.set_title(
+            _panel_title(_display_label(pts, ds), idx),
+            loc="left",
+            fontsize=E_TRANSITION_STYLE["panel_label_size"],
+            pad=3,
+        )
         return None
 
     r_val = pearson_r(freq[valid], acc[valid])
@@ -427,7 +451,8 @@ def _draw_skill_panel(ax, pts, ds, yr_min, yr_max, xl, yl, xticks, yticks, idx):
 
     sc = ax.scatter(freq[valid], acc[valid], c=yrs[valid], cmap=PLOT_STYLE["cmap"],
                     vmin=yr_min, vmax=yr_max, s=PLOT_STYLE["point_size"],
-                    edgecolor=PLOT_STYLE["point_edge_color"], linewidth=0.35,
+                    edgecolor=PLOT_STYLE["point_edge_color"],
+                    linewidth=E_TRANSITION_STYLE["point_edge_width"],
                     alpha=PLOT_STYLE["point_alpha"])
 
     if np.nanstd(freq[valid]) > 0:
@@ -435,24 +460,51 @@ def _draw_skill_panel(ax, pts, ds, yr_min, yr_max, xl, yl, xticks, yticks, idx):
         xl_fit = np.linspace(float(np.nanmin(freq[valid])),
                              float(np.nanmax(freq[valid])), 100)
         ax.plot(xl_fit, fit[0] * xl_fit + fit[1],
-                color=PLOT_STYLE["fit_line_color"], linewidth=1.0, alpha=0.9)
+                color=PLOT_STYLE["fit_line_color"],
+                linewidth=E_TRANSITION_STYLE["fit_line_width"],
+                alpha=0.9)
 
-    ax.set_title(_panel_title(_display_label(pts, ds), idx), loc="left")
+    ax.set_title(
+        _panel_title(_display_label(pts, ds), idx),
+        loc="left",
+        fontsize=E_TRANSITION_STYLE["panel_label_size"],
+        pad=3,
+    )
     style_open_axes(ax)
-    style_light_grid(ax, axis="both", color=PLOT_STYLE["grid_color"], linewidth=0.45)
+    style_light_grid(
+        ax,
+        axis="both",
+        color=PLOT_STYLE["grid_color"],
+        linewidth=E_TRANSITION_STYLE["grid_line_width"],
+    )
     ax.set_xlim(*xl); ax.set_ylim(*yl)
     ax.set_xticks(xticks); ax.set_yticks(yticks)
+    ax.tick_params(
+        axis="both",
+        labelsize=E_TRANSITION_STYLE["tick_label_size"],
+        length=E_TRANSITION_STYLE["tick_length"],
+        width=E_TRANSITION_STYLE["tick_width"],
+        pad=1.8,
+    )
 
     p_text = "NA" if not np.isfinite(p_val) else f"{p_val:.2g}"
     ax.text(0.98, 0.98, f"r = {r_val:.2f}\np = {p_text}",
             transform=ax.transAxes, va="top", ha="right",
-            fontsize=ANNOTATION_SIZE, color="#555555", clip_on=False)
+            fontsize=E_TRANSITION_STYLE["annotation_size"],
+            color="#555555", clip_on=False)
 
     if ANNOTATE_YEAR_RANGE is not None:
         a0, a1 = ANNOTATE_YEAR_RANGE
         idxs = np.where(valid & (yrs >= a0) & (yrs <= a1))[0]
-        ax.scatter(freq[idxs], acc[idxs], s=72, facecolors="none",
-                   edgecolors=PLOT_STYLE["highlight_color"], linewidth=1.0, zorder=5)
+        ax.scatter(
+            freq[idxs],
+            acc[idxs],
+            s=E_TRANSITION_STYLE["highlight_point_size"],
+            facecolors="none",
+            edgecolors=PLOT_STYLE["highlight_color"],
+            linewidth=E_TRANSITION_STYLE["highlight_edge_width"],
+            zorder=5,
+        )
     return sc
 
 
@@ -462,9 +514,12 @@ def _plot_skill_relationship(points):
     valid_yrs = yrs[np.isfinite(yrs)]
     xl, yl, xticks, yticks = _shared_axes(points)
 
-    fig = plt.figure(figsize=(PUB_FIG_WIDTH_IN, 11.0))
-    axes = source_panel_grid_5x2(fig, left=0.095, right=0.905, bottom=0.080,
-                                 top=0.955, wspace=0.08, hspace=0.22)
+    fig = plt.figure(figsize=(
+        mm_to_inches(E_TRANSITION_STYLE["figure_width_mm"]),
+        mm_to_inches(E_TRANSITION_STYLE["figure_height_mm"]),
+    ))
+    axes = source_panel_grid_5x2(fig, left=0.095, right=0.905, bottom=0.083,
+                                 top=0.955, wspace=0.08, hspace=0.21)
 
     sc = None
     for i, ds in enumerate(ds_list):
@@ -474,14 +529,14 @@ def _plot_skill_relationship(points):
                                xl, yl, xticks, yticks, i) or sc
 
     if sc is not None:
-        style_colorbar(fig.colorbar(sc, ax=axes, fraction=0.014, pad=0.008),
-                       label="Test-start year")
+        _add_year_colorbar(fig, sc, axes)
 
     _add_transition_title(fig, show_year_note=True)
     style_source_panel_axes_5x2(axes, n_visible=len(ds_list))
     add_shared_axis_labels(fig, xlabel=_transition_axis_label(),
                            ylabel=f"ACC at lead {LEAD}-month",
-                           xlabel_y=0.035, ylabel_x=0.027)
+                           xlabel_y=0.035, ylabel_x=0.028,
+                           fontsize=E_TRANSITION_STYLE["axis_label_size"])
     save_publication_figure(fig, _make_output_paths("frequency_vs_skill"),
                             dpi=FIGURE_DPI, pad_inches=0.03, print_paths=True)
     if SHOW_FIGURE:
@@ -500,24 +555,47 @@ def _draw_time_panel(ax, pts, ds, yr_min, yr_max, f_min, f_max, idx):
 
     if valid.sum() < 2:
         ax.text(0.5, 0.5, "< 2 valid points", transform=ax.transAxes,
-                ha="center", va="center", fontsize=TICK_LABEL_SIZE)
-        ax.set_title(_panel_title(_display_label(pts, ds), idx), loc="left")
+                ha="center", va="center", fontsize=E_TRANSITION_STYLE["tick_label_size"])
+        ax.set_title(
+            _panel_title(_display_label(pts, ds), idx),
+            loc="left",
+            fontsize=E_TRANSITION_STYLE["panel_label_size"],
+            pad=3,
+        )
         return None
 
     order = np.argsort(yrs[valid])
     sy, sf = yrs[valid][order], freq[valid][order]
 
     ax.plot(sy, sf, color=PLOT_STYLE["fit_line_color"],
-            linewidth=0.95, alpha=0.82, zorder=1)
+            linewidth=E_TRANSITION_STYLE["time_line_width"], alpha=0.82, zorder=1)
     sc = ax.scatter(sy, sf, c=sy, cmap=PLOT_STYLE["cmap"],
                     vmin=yr_min, vmax=yr_max, s=PLOT_STYLE["point_size"],
                     edgecolor=PLOT_STYLE["point_edge_color"],
-                    linewidth=0.35, alpha=PLOT_STYLE["point_alpha"], zorder=2)
+                    linewidth=E_TRANSITION_STYLE["point_edge_width"],
+                    alpha=PLOT_STYLE["point_alpha"], zorder=2)
 
-    ax.set_title(_panel_title(_display_label(pts, ds), idx), loc="left")
+    ax.set_title(
+        _panel_title(_display_label(pts, ds), idx),
+        loc="left",
+        fontsize=E_TRANSITION_STYLE["panel_label_size"],
+        pad=3,
+    )
     style_open_axes(ax)
-    style_light_grid(ax, axis="both", color=PLOT_STYLE["grid_color"], linewidth=0.45)
+    style_light_grid(
+        ax,
+        axis="both",
+        color=PLOT_STYLE["grid_color"],
+        linewidth=E_TRANSITION_STYLE["grid_line_width"],
+    )
     ax.set_xlim(yr_min, yr_max); ax.set_ylim(f_min, f_max)
+    ax.tick_params(
+        axis="both",
+        labelsize=E_TRANSITION_STYLE["tick_label_size"],
+        length=E_TRANSITION_STYLE["tick_length"],
+        width=E_TRANSITION_STYLE["tick_width"],
+        pad=1.8,
+    )
     return sc
 
 
@@ -534,9 +612,12 @@ def _plot_frequency_over_time(points):
     f_min = max(0.0, float(np.nanmin(freq[valid])) - f_pad)
     f_max = min(1.0, float(np.nanmax(freq[valid])) + f_pad)
 
-    fig = plt.figure(figsize=(PUB_FIG_WIDTH_IN, 11.0))
-    axes = source_panel_grid_5x2(fig, left=0.095, right=0.905, bottom=0.080,
-                                 top=0.93, wspace=0.08, hspace=0.22)
+    fig = plt.figure(figsize=(
+        mm_to_inches(E_TRANSITION_STYLE["figure_width_mm"]),
+        mm_to_inches(E_TRANSITION_STYLE["figure_height_mm"]),
+    ))
+    axes = source_panel_grid_5x2(fig, left=0.095, right=0.905, bottom=0.083,
+                                 top=0.93, wspace=0.08, hspace=0.21)
 
     sc = None
     for i, ds in enumerate(ds_list):
@@ -544,14 +625,14 @@ def _plot_frequency_over_time(points):
                               yr_min, yr_max, f_min, f_max, i) or sc
 
     if sc is not None:
-        style_colorbar(fig.colorbar(sc, ax=axes, fraction=0.014, pad=0.008),
-                       label="Test-start year")
+        _add_year_colorbar(fig, sc, axes)
 
     _add_transition_title(fig, show_year_note=False)
     style_source_panel_axes_5x2(axes, n_visible=len(ds_list))
     add_shared_axis_labels(fig, xlabel="Test-start year",
                            ylabel=_transition_axis_label(),
-                           xlabel_y=0.035, ylabel_x=0.027)
+                           xlabel_y=0.035, ylabel_x=0.028,
+                           fontsize=E_TRANSITION_STYLE["axis_label_size"])
     save_publication_figure(fig, _make_output_paths("frequency_over_time"),
                             dpi=FIGURE_DPI, pad_inches=0.03, print_paths=True)
     if SHOW_FIGURE:

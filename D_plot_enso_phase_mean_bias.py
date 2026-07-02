@@ -23,12 +23,13 @@ from A_basic_sources import (
     parse_start_year,
 )
 from plot_style import (
-    AXIS_LABEL_SIZE,
-    LEGEND_SIZE,
-    PANEL_LABEL_SIZE,
+    D_ENSO_PHASE_STYLE,
+    DEFAULT_FIGURE_DPI,
     add_compact_figure_legend,
     configure_publication_style,
     dataset_color,
+    figure_output_paths,
+    mm_to_inches,
     save_publication_figure,
     style_light_grid,
     style_open_axes,
@@ -45,8 +46,7 @@ BASE_YEAR = 1871
 FIGURE_ID = "D"
 FIGURE_NAME = "enso_phase_mean_bias"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
-OUTPUT_FORMATS = ("png", "pdf")
-FIGURE_DPI = 600
+FIGURE_DPI = DEFAULT_FIGURE_DPI
 RUN_SELF_TEST = True
 
 DATA_SOURCES = get_dl_sources()
@@ -145,7 +145,7 @@ def main():
             print(f"\n{source['label']} - {phase_name}")
             print(summary.to_string(float_format=lambda v: f"{v:.3f}"))
 
-    PHASE_TITLES = {"El Nino": "El Niño", "La Nina": "La Niña"}
+    PHASE_TITLES = {"El Nino": r"El Ni$\tilde{n}$o", "La Nina": r"La Ni$\tilde{n}$a"}
 
     all_bias_values = np.concatenate([
         phase_bias[sid][pn]["mean_bias"].dropna().to_numpy()
@@ -158,7 +158,14 @@ def main():
     y_limits = (all_bias_values.min() - y_padding, all_bias_values.max() + y_padding)
 
     fig, (ax_en, ax_ln) = plt.subplots(
-        2, 1, figsize=(10.0, 8.0), dpi=FIGURE_DPI, sharex=True,
+        2,
+        1,
+        figsize=(
+            mm_to_inches(D_ENSO_PHASE_STYLE["figure_width_mm"]),
+            mm_to_inches(D_ENSO_PHASE_STYLE["figure_height_mm"]),
+        ),
+        dpi=FIGURE_DPI,
+        sharex=True,
     )
     for phase_name, ax, panel_label in zip(
         ("El Nino", "La Nina"), (ax_en, ax_ln), ("a", "b")
@@ -168,43 +175,74 @@ def main():
             ax.plot(
                 FORECAST_LEADS, summary["mean_bias"],
                 color=dataset_color(source["id"]),
-                linewidth=1.8,
+                linewidth=D_ENSO_PHASE_STYLE["line_width"],
                 marker="o" if phase_name == "El Nino" else "s",
-                markersize=3.5,
+                markersize=D_ENSO_PHASE_STYLE["marker_size"],
                 label=source["label"],
             )
-        ax.axhline(0, color="0.45", linewidth=0.9, linestyle="--", zorder=0)
+        ax.axhline(
+            0,
+            color="0.45",
+            linewidth=D_ENSO_PHASE_STYLE["zero_line_width"],
+            linestyle="--",
+            zorder=0,
+        )
         title_text = f"$\\mathbf{{({panel_label})}}$ {PHASE_TITLES[phase_name]}"
-        ax.set_title(title_text, loc="left", fontsize=PANEL_LABEL_SIZE, pad=6)
+        ax.set_title(title_text, loc="left", fontsize=D_ENSO_PHASE_STYLE["panel_label_size"], pad=4)
         ax.set_ylim(*y_limits)
-        style_light_grid(ax, axis="y", linewidth=0.6)
+        style_light_grid(ax, axis="y", linewidth=D_ENSO_PHASE_STYLE["grid_line_width"])
         style_open_axes(ax)
+        ax.tick_params(
+            axis="both",
+            labelsize=D_ENSO_PHASE_STYLE["tick_label_size"],
+            length=D_ENSO_PHASE_STYLE["tick_length"],
+            width=D_ENSO_PHASE_STYLE["tick_width"],
+            pad=2.0,
+        )
 
     # Shared y-label centred between the two panels
-    fig.supylabel("Mean bias (degC)", fontsize=AXIS_LABEL_SIZE, x=0.04)
+    fig.supylabel(
+        "Mean bias (degC)",
+        fontsize=D_ENSO_PHASE_STYLE["axis_label_size"],
+        x=0.045,
+    )
     # x-axis label only on bottom panel; hide top panel x tick labels
     ax_en.tick_params(axis="x", labelbottom=False)
-    ax_ln.set_xlabel("Forecast lead (months)", fontsize=AXIS_LABEL_SIZE)
+    ax_ln.set_xlabel(
+        "Forecast lead (months)",
+        fontsize=D_ENSO_PHASE_STYLE["axis_label_size"],
+    )
     for ax in (ax_en, ax_ln):
         ax.set_xlim(0.5, int(FORECAST_LEADS.max()) + 0.5)
         ax.set_xticks(FORECAST_LEADS)
 
     handles = [
-        Line2D([0], [0], color=dataset_color(s["id"]), linewidth=2.0, label=s["label"])
+        Line2D(
+            [0],
+            [0],
+            color=dataset_color(s["id"]),
+            linewidth=D_ENSO_PHASE_STYLE["legend_line_width"],
+            label=s["label"],
+        )
         for s in DATA_SOURCES
     ]
     add_compact_figure_legend(
-        fig, handles=handles, ncol=4, bbox_to_anchor=(0.5, 1.00),
-        fontsize=LEGEND_SIZE, handlelength=1.35,
-        columnspacing=0.40, labelspacing=0.25,
+        fig,
+        handles=handles,
+        ncol=5,
+        bbox_to_anchor=(0.5, 0.995),
+        fontsize=D_ENSO_PHASE_STYLE["legend_size"],
+        handlelength=1.20,
+        columnspacing=0.35,
+        labelspacing=0.20,
     )
-    fig.subplots_adjust(top=0.92, left=0.11, right=0.99, bottom=0.10, hspace=0.22)
+    fig.subplots_adjust(top=0.895, left=0.105, right=0.985, bottom=0.105, hspace=0.18)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}_by_lead"
     saved_paths = save_publication_figure(
         fig,
-        [output_base.with_suffix(f".{fmt}") for fmt in OUTPUT_FORMATS],
+        figure_output_paths(output_base),
         dpi=FIGURE_DPI,
         pad_inches=0.02,
     )

@@ -23,14 +23,14 @@ from A_basic_sources import (
     parse_start_year,
 )
 from plot_style import (
-    AXIS_LABEL_SIZE,
-    LEGEND_SIZE,
-    PANEL_LABEL_SIZE,
-    TICK_LABEL_SIZE,
+    A_SAMPLING_STYLE,
+    DEFAULT_FIGURE_DPI,
     add_compact_figure_legend,
     add_shared_axis_labels,
     configure_publication_style,
     dataset_color,
+    figure_output_paths,
+    mm_to_inches,
     panel_title,
     panel_title_only,
     save_publication_figure,
@@ -49,7 +49,7 @@ from plot_style import (
 FIGURE_ID = "A"
 FIGURE_NAME = "sampling_correlation"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
-FIGURE_DPI = 600
+FIGURE_DPI = DEFAULT_FIGURE_DPI
 PUB_FIG_WIDTH_MM = 183
 PUB_FIG_HEIGHT_MM = 240
 COMPARISON_FIG_HEIGHT_MM = 180
@@ -65,23 +65,7 @@ FIGURE1_VALUE = "bootstrap_mean"
 FIGURE1_REFERENCE_R = 0.5
 REFERENCE_DATASET_ID = "source_1"
 
-PLOT_STYLE = {
-    "axis_label_size": AXIS_LABEL_SIZE,
-    "tick_label_size": TICK_LABEL_SIZE,
-    "panel_label_size": PANEL_LABEL_SIZE,
-    "legend_size": LEGEND_SIZE,
-    "line_width": 1.1,
-    "comparison_line_width": 1.7,
-    "reference_line_width": 0.7,
-    "lead_colors": [
-        "#f28e8c",
-        "#4c9be8",
-        "#59a14f",
-        "#af7aa1",
-        "#edc948",
-        "#76b7b2",
-    ],
-}
+PLOT_STYLE = A_SAMPLING_STYLE
 
 VALUE_OPTIONS = {
     "bootstrap_mean": ("r_mean", "bootstrap_mean"),
@@ -273,8 +257,8 @@ def plot_overview_lines(
     y_lower = max(-1.0, y_lower - padding)
     y_upper = min(1.05, y_upper + padding)
 
-    fig_width = PUB_FIG_WIDTH_MM / 25.4
-    fig_height = COMPARISON_FIG_HEIGHT_MM / 25.4
+    fig_width = mm_to_inches(PUB_FIG_WIDTH_MM)
+    fig_height = mm_to_inches(COMPARISON_FIG_HEIGHT_MM)
     fig, axes = plt.subplots(
         len(source_groups),
         1,
@@ -286,7 +270,7 @@ def plot_overview_lines(
         left=0.075,
         right=0.99,
         bottom=0.09,
-        top=0.94,
+        top=0.90,
         hspace=0.14,
     )
     axes = np.atleast_1d(axes)
@@ -353,17 +337,17 @@ def plot_overview_lines(
         fig,
         handles=legend_handles,
         labels=legend_labels,
-        ncol=3,
-        bbox_to_anchor=(0.5, 1.005),
-        fontsize=PLOT_STYLE["legend_size"] - 0.5,
-        columnspacing=0.40,
-        handlelength=1.10,
-        labelspacing=0.20,
+        ncol=4,
+        bbox_to_anchor=(0.5, 0.992),
+        fontsize=PLOT_STYLE["legend_size"],
+        columnspacing=0.35,
+        handlelength=1.00,
+        labelspacing=0.18,
     )
 
     save_publication_figure(
         fig,
-        [output_path.with_suffix(".png"), output_path.with_suffix(".pdf")],
+        figure_output_paths(output_path),
         dpi=FIGURE_DPI,
         pad_inches=0.02,
     )
@@ -384,8 +368,8 @@ def plot_small_multiples(
     y_lower = max(-1.0, min(0.2, math.floor(min_ci * 10) / 10))
     y_upper = 1.05
 
-    fig_width = PUB_FIG_WIDTH_MM / 25.4
-    fig_height = max(PUB_FIG_HEIGHT_MM / 25.4, 11.0)
+    fig_width = mm_to_inches(PUB_FIG_WIDTH_MM)
+    fig_height = max(mm_to_inches(PUB_FIG_HEIGHT_MM), 11.0)
     fig = plt.figure(figsize=(fig_width, fig_height))
     axes = source_panel_grid_5x2(
         fig,
@@ -436,13 +420,14 @@ def plot_small_multiples(
             loc="left",
             fontsize=PLOT_STYLE["panel_label_size"],
             fontweight="bold",
-            pad=6,
+            pad=4,
         )
         style_light_grid(ax, axis="y", linewidth=0.45)
-        ax.tick_params(axis="both", direction="in", labelsize=PLOT_STYLE["tick_label_size"])
+        ax.tick_params(axis="both", direction="in", labelsize=PLOT_STYLE["small_tick_label_size"])
         style_open_axes(ax)
 
-    tick_years = np.arange(years[0], years[-1] + 1, 10)
+    tick_start = int(math.ceil(years[0] / 20) * 20)
+    tick_years = np.arange(tick_start, years[-1] + 1, 20)
     for ax in axes:
         ax.set_xticks(tick_years)
     style_source_panel_axes_5x2(axes, n_visible=len(source_ids))
@@ -479,7 +464,7 @@ def plot_small_multiples(
 
     save_publication_figure(
         fig,
-        [output_path.with_suffix(".png"), output_path.with_suffix(".pdf")],
+        figure_output_paths(output_path),
         dpi=FIGURE_DPI,
         pad_inches=0.02,
     )

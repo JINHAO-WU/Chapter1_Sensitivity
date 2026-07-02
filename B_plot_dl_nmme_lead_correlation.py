@@ -16,12 +16,12 @@ from A_basic_sources import (
     load_source_forecast_table,
 )
 from plot_style import (
-    AXIS_LABEL_SIZE,
-    LEGEND_SIZE,
-    TICK_LABEL_SIZE,
+    B_LEAD_CORRELATION_STYLE,
+    DEFAULT_FIGURE_DPI,
     add_compact_figure_legend,
     configure_publication_style,
     dataset_color,
+    figure_output_paths,
     save_publication_figure,
     style_open_axes,
     validate_data_sources,
@@ -35,13 +35,12 @@ BASE_YEAR = 1871
 FIGURE_ID = "B"
 FIGURE_NAME = "dl_nmme_lead_correlation"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
-FIGURE_DPI = 600
-OUTPUT_FORMATS = ("png", "pdf")
+FIGURE_DPI = DEFAULT_FIGURE_DPI
 MIN_SAMPLES = 3
 
 # Double-column publication layout (183 mm wide).
 FIGURE_WIDTH_INCH = 7.2
-FIGURE_HEIGHT_INCH = 3.8
+FIGURE_HEIGHT_INCH = 4.0
 
 DL_SOURCES = get_dl_sources()
 
@@ -102,18 +101,20 @@ for source_id, metrics in dl_metrics.items():
     axis.plot(
         metrics["lead"], metrics["r"],
         color=dataset_color(source_id),
-        marker="o", markersize=4, linewidth=1.8,
+        marker="o",
+        markersize=B_LEAD_CORRELATION_STYLE["marker_size"],
+        linewidth=B_LEAD_CORRELATION_STYLE["line_width"],
         label=dl_labels_by_id[source_id],
     )
 
-axis.axhline(0, color="0.75", linewidth=0.7, zorder=0)
-axis.axhline(0.5, color="0.45", linewidth=1.0, linestyle="--", zorder=0)
+axis.axhline(0, color="0.75", linewidth=B_LEAD_CORRELATION_STYLE["zero_line_width"], zorder=0)
+axis.axhline(0.5, color="0.45", linewidth=B_LEAD_CORRELATION_STYLE["reference_line_width"], linestyle="--", zorder=0)
 axis.set_xlim(0.5, 18.5)
 axis.set_ylim(-0.15, 1.02)
 axis.set_xticks(np.arange(1, 19))
-axis.set_xlabel("Forecast lead (months)", fontsize=AXIS_LABEL_SIZE)
-axis.set_ylabel("Pearson correlation coefficient", fontsize=AXIS_LABEL_SIZE)
-axis.tick_params(axis="both", labelsize=TICK_LABEL_SIZE)
+axis.set_xlabel("Forecast lead (months)", fontsize=B_LEAD_CORRELATION_STYLE["axis_label_size"])
+axis.set_ylabel("Pearson correlation coefficient", fontsize=B_LEAD_CORRELATION_STYLE["axis_label_size"])
+axis.tick_params(axis="both", labelsize=B_LEAD_CORRELATION_STYLE["tick_label_size"])
 style_open_axes(axis)
 
 handles, labels = axis.get_legend_handles_labels()
@@ -121,23 +122,23 @@ add_compact_figure_legend(
     figure,
     handles=handles,
     labels=labels,
-    ncol=2,
-    fontsize=LEGEND_SIZE,
-    handlelength=1.2,
-    columnspacing=0.5,
-    labelspacing=0.3,
-    bbox_to_anchor=(0.98, 0.98),
-    loc="upper right",
+    ncol=5,
+    fontsize=B_LEAD_CORRELATION_STYLE["legend_size"],
+    handlelength=1.0,
+    columnspacing=0.45,
+    labelspacing=0.22,
+    bbox_to_anchor=(0.5, 0.980),
+    loc="upper center",
 )
 
 figure.subplots_adjust(
-    left=0.12, right=0.98, bottom=0.15, top=0.96,
+    left=0.12, right=0.98, bottom=0.14, top=0.88,
 )
 
 output_base = OUTPUT_DIR / f"{FIGURE_ID}_{FIGURE_NAME}"
 saved_paths = save_publication_figure(
     figure,
-    [output_base.with_suffix(f".{fmt}") for fmt in OUTPUT_FORMATS],
+    figure_output_paths(output_base),
     dpi=FIGURE_DPI,
     pad_inches=0.02,
 )

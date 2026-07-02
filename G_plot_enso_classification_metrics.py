@@ -15,18 +15,14 @@ from sklearn.metrics import confusion_matrix
 
 from A_basic_sources import FIGURE_ROOT, get_dl_sources, load_source_forecast_table
 from plot_style import (
-    AXIS_LABEL_SIZE,
-    COLORBAR_TICK_SIZE,
-    COMPACT_TICK_LABEL_SIZE,
-    COMPACT_TICK_LENGTH,
-    COMPACT_TICK_PAD,
-    COMPACT_TICK_WIDTH,
+    DEFAULT_FIGURE_DPI,
     EVENT_COLORS,
-    LEGEND_SIZE,
-    VALUE_LABEL_SIZE,
+    G_CLASSIFICATION_STYLE,
     add_shared_axis_labels,
     configure_publication_style,
     disable_axis_grid,
+    figure_output_paths,
+    mm_to_inches,
     save_publication_figure,
     style_boxed_axes,
     style_colorbar,
@@ -39,10 +35,7 @@ BASE_YEAR = 1871
 FIGURE_ID = "G"
 FIGURE_NAME = "enso_classification_metrics"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
-FIGURE_DPI = 600
-OUTPUT_FORMATS = ("png", "pdf")
-PUB_FIG_WIDTH_MM = 183
-PUB_FIG_HEIGHT_MM = 270
+FIGURE_DPI = DEFAULT_FIGURE_DPI
 
 LEADS = [6]
 N_TYPE = 5
@@ -144,11 +137,14 @@ def compute_metrics(df, n_type, metric, leads):
 
 def plot_figure(dataset_results, lead, order, output_base):
     fig = plt.figure(
-        figsize=(PUB_FIG_WIDTH_MM / 25.4, PUB_FIG_HEIGHT_MM / 25.4),
+        figsize=(
+            mm_to_inches(G_CLASSIFICATION_STYLE["figure_width_mm"]),
+            mm_to_inches(G_CLASSIFICATION_STYLE["figure_height_mm"]),
+        ),
         facecolor="white",
     )
-    outer = fig.add_gridspec(5, 2, left=0.100, right=0.985, bottom=0.058, top=0.985,
-                             wspace=0.09, hspace=0.14)
+    outer = fig.add_gridspec(5, 2, left=0.100, right=0.985, bottom=0.064, top=0.985,
+                             wspace=0.09, hspace=0.13)
     panels = [outer[r, c] for r in range(5) for c in range(2)]
 
     x_labels = [e.replace(" ", "\n") for e in order]
@@ -172,59 +168,91 @@ def plot_figure(dataset_results, lead, order, output_base):
 
         image = ax_cm.imshow(cm, cmap="Blues", vmin=0.0, vmax=1.0, aspect="auto", interpolation="nearest")
         ax_cm.set_xticks(range(len(order)))
-        ax_cm.set_xticklabels(x_labels if bottom_row else [], fontsize=COLORBAR_TICK_SIZE)
+        ax_cm.set_xticklabels(x_labels if bottom_row else [], fontsize=G_CLASSIFICATION_STYLE["tick_label_size"])
         ax_cm.set_yticks(range(len(order)))
-        ax_cm.set_yticklabels([] if right_col else y_labels, fontsize=COLORBAR_TICK_SIZE)
-        ax_cm.tick_params(length=COMPACT_TICK_LENGTH, width=COMPACT_TICK_WIDTH, pad=COMPACT_TICK_PAD)
+        ax_cm.set_yticklabels([] if right_col else y_labels, fontsize=G_CLASSIFICATION_STYLE["tick_label_size"])
+        ax_cm.tick_params(
+            length=G_CLASSIFICATION_STYLE["tick_length"],
+            width=G_CLASSIFICATION_STYLE["tick_width"],
+            pad=G_CLASSIFICATION_STYLE["tick_pad"],
+        )
         if bottom_row:
-            ax_cm.set_xlabel("Predicted", fontsize=AXIS_LABEL_SIZE, labelpad=3)
-        ax_cm.set_title(title, loc="left", fontsize=COMPACT_TICK_LABEL_SIZE, pad=2)
+            ax_cm.set_xlabel("Predicted", fontsize=G_CLASSIFICATION_STYLE["axis_label_size"], labelpad=2)
+        ax_cm.set_title(title, loc="left", fontsize=G_CLASSIFICATION_STYLE["panel_label_size"], pad=2)
         for r in range(cm.shape[0]):
             for c in range(cm.shape[1]):
                 v = cm[r, c]
                 ax_cm.text(c, r, f"{v:.2f}", ha="center", va="center",
-                           fontsize=VALUE_LABEL_SIZE, fontweight="semibold",
+                           fontsize=G_CLASSIFICATION_STYLE["cell_label_size"], fontweight="semibold",
                            color="white" if v >= 0.60 else "#1A1A1A")
         disable_axis_grid(ax_cm)
         style_boxed_axes(ax_cm)
 
-        bars = ax_bar.bar(x_pos, scores, width=0.74, color=EVENT_COLORS[:len(order)],
-                          edgecolor="#333333", linewidth=0.7)
+        bars = ax_bar.bar(
+            x_pos,
+            scores,
+            width=0.74,
+            color=EVENT_COLORS[:len(order)],
+            edgecolor="#333333",
+            linewidth=G_CLASSIFICATION_STYLE["bar_edge_width"],
+        )
         for bar, v in zip(bars, scores):
             txt = "NA" if np.isnan(v) else f"{v:.3f}"
             ly = 0.025 if np.isnan(v) or v == 0 else min(v + 0.035, 1.045)
             ax_bar.text(bar.get_x() + bar.get_width() / 2, ly, txt,
-                        ha="center", va="bottom", fontsize=VALUE_LABEL_SIZE, fontweight="semibold",
+                        ha="center", va="bottom",
+                        fontsize=G_CLASSIFICATION_STYLE["bar_label_size"],
+                        fontweight="semibold",
                         color="#666666" if np.isnan(v) else "#1A1A1A")
         ax_bar.set_xlim(0, len(order))
         ax_bar.set_ylim(0, 1.08)
         ax_bar.set_xticks(x_pos)
-        ax_bar.set_xticklabels(x_labels if bottom_row else [], fontsize=COLORBAR_TICK_SIZE)
+        ax_bar.set_xticklabels(x_labels if bottom_row else [], fontsize=G_CLASSIFICATION_STYLE["tick_label_size"])
         ax_bar.set_yticks(np.arange(0, 1.01, 0.2))
-        ax_bar.tick_params(axis="y", labelsize=COLORBAR_TICK_SIZE,
-                           length=COMPACT_TICK_LENGTH, width=COMPACT_TICK_WIDTH, pad=COMPACT_TICK_PAD,
-                           labelleft=not right_col)
-        ax_bar.tick_params(axis="x", length=COMPACT_TICK_LENGTH, width=COMPACT_TICK_WIDTH, pad=COMPACT_TICK_PAD)
-        # F1-score title only on first panel
-        if not i:
-            ax_bar.set_title(metric_label, fontsize=LEGEND_SIZE, pad=2)
+        ax_bar.tick_params(
+            axis="y",
+            labelsize=G_CLASSIFICATION_STYLE["tick_label_size"],
+            length=G_CLASSIFICATION_STYLE["tick_length"],
+            width=G_CLASSIFICATION_STYLE["tick_width"],
+            pad=G_CLASSIFICATION_STYLE["tick_pad"],
+            labelleft=not right_col,
+        )
+        ax_bar.tick_params(
+            axis="x",
+            length=G_CLASSIFICATION_STYLE["tick_length"],
+            width=G_CLASSIFICATION_STYLE["tick_width"],
+            pad=G_CLASSIFICATION_STYLE["tick_pad"],
+        )
+        # F1-score title on both top-row bar panels.
+        if i < 2:
+            ax_bar.set_title(metric_label, fontsize=G_CLASSIFICATION_STYLE["metric_title_size"], pad=2)
         disable_axis_grid(ax_bar)
         ax_bar.set_axisbelow(True)
         style_open_axes(ax_bar)
 
-    add_shared_axis_labels(fig, ylabel="Real", ylabel_x=0.008, fontsize=AXIS_LABEL_SIZE)
+    add_shared_axis_labels(
+        fig,
+        ylabel="Real",
+        ylabel_x=0.010,
+        fontsize=G_CLASSIFICATION_STYLE["axis_label_size"],
+    )
 
     fig.canvas.draw()
     x0 = outer[0, 0].get_position(fig).x0
     x1 = outer[0, 1].get_position(fig).x1
-    cax = fig.add_axes([x0, 0.010, x1 - x0, 0.012])
+    cax = fig.add_axes([x0, 0.012, x1 - x0, G_CLASSIFICATION_STYLE["heatmap_colorbar_height"]])
     cbar = fig.colorbar(image, cax=cax, orientation="horizontal")
     cbar.set_ticks([0.0, 0.5, 1.0])
-    style_colorbar(cbar, tick_length=1.8, tick_pad=1.2)
+    style_colorbar(
+        cbar,
+        tick_labelsize=G_CLASSIFICATION_STYLE["colorbar_tick_size"],
+        tick_length=1.6,
+        tick_pad=1.1,
+    )
 
     saved = save_publication_figure(
         fig,
-        [output_base.with_suffix(f".{fmt}") for fmt in OUTPUT_FORMATS],
+        figure_output_paths(output_base),
         dpi=FIGURE_DPI, pad_inches=0.02,
     )
     plt.close(fig)

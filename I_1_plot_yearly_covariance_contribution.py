@@ -33,12 +33,12 @@ from A_basic_sources import (
     parse_start_year,
 )
 from plot_style import (
-    AXIS_LABEL_SIZE,
-    COLORBAR_TICK_SIZE,
-    COMPACT_TICK_LABEL_SIZE,
     DATASET_COLORS,
-    LEGEND_SIZE,
+    DEFAULT_FIGURE_DPI,
+    I_COVARIANCE_STYLE,
     configure_publication_style,
+    figure_output_paths,
+    mm_to_inches,
     save_publication_figure,
     style_open_axes,
     validate_data_sources,
@@ -58,8 +58,7 @@ FIGURE_ID: str = "I"
 FIGURE_NAME: str = "yearly_covariance_contribution"
 OUTPUT_DIR: Path = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 OUTPUT_BASENAME: str = f"I_1_{FIGURE_NAME}_lead6"
-OUTPUT_FORMATS: tuple[str, ...] = ("png", "pdf")
-FIGURE_DPI: int = 600
+FIGURE_DPI: int = DEFAULT_FIGURE_DPI
 
 DATA_SOURCES: list[dict] = get_dl_sources()
 
@@ -75,14 +74,12 @@ else:
 N_SOURCES: int = len(DATA_SOURCES)
 
 # ---------------------------------------------------------------------------
-# Layout geometry (inches)
+# Layout geometry (figure fractions)
 # ---------------------------------------------------------------------------
-FIG_WIDTH: float = 10.5
-FIG_HEIGHT: float = 8.5
-LEFT_MARGIN: float = 0.22
-RIGHT_MARGIN: float = 0.88
-BOTTOM_MARGIN: float = 0.08
-TOP_MARGIN: float = 0.96
+LEFT_MARGIN: float = 0.235
+RIGHT_MARGIN: float = 0.875
+BOTTOM_MARGIN: float = 0.090
+TOP_MARGIN: float = 0.955
 HSPACE_GS: float = 0.10
 
 # Three panels: obs lines + cov heatmap + cov-minus-obs heatmap
@@ -194,15 +191,28 @@ def _make_heatmap(ax, data_matrix, x_edges, y_edges, c_lim, cmap):
     return im
 
 
+def _wrap_source_label(label: str, max_length: int = 25) -> str:
+    if len(label) <= max_length or "+" not in label:
+        return label
+    parts = label.split("+")
+    wrapped = parts[0]
+    for part in parts[1:]:
+        current_line = wrapped.split("\n")[-1]
+        separator = "+\n" if len(current_line) + len(part) + 1 > max_length else "+"
+        wrapped += separator + part
+    return wrapped
+
+
 def _style_heatmap_axes(ax, source_labels, year_ticks, year_min, year_max, xlabel=True):
     y_tick_positions = np.arange(N_SOURCES - 0.5, -0.5, -1, dtype=float)
     ax.set_yticks(y_tick_positions)
-    ax.set_yticklabels(source_labels, fontsize=COMPACT_TICK_LABEL_SIZE)
+    ax.set_yticklabels(source_labels, fontsize=I_COVARIANCE_STYLE["tick_label_size"])
 
     ax.set_xticks(year_ticks)
     if xlabel:
         ax.set_xticklabels(
-            [str(int(t)) for t in year_ticks], fontsize=COMPACT_TICK_LABEL_SIZE,
+            [str(int(t)) for t in year_ticks],
+            fontsize=I_COVARIANCE_STYLE["tick_label_size"],
         )
     else:
         ax.tick_params(axis="x", labelbottom=False)
@@ -211,8 +221,8 @@ def _style_heatmap_axes(ax, source_labels, year_ticks, year_min, year_max, xlabe
     ax.set_xlim(year_min, year_max + 1)
     ax.set_ylim(N_SOURCES, 0)
     ax.tick_params(
-        axis="both", direction="out", length=3, width=0.55, pad=2,
-        labelsize=COMPACT_TICK_LABEL_SIZE,
+        axis="both", direction="out", length=2.2, width=0.55, pad=1.8,
+        labelsize=I_COVARIANCE_STYLE["tick_label_size"],
     )
     style_open_axes(ax)
     ax.grid(False)
@@ -292,7 +302,10 @@ def main() -> None:
     print(f"Cov-Obs color limits: vmin={-c2_lim:.5f}, vmax={c2_lim:.5f}")
 
     # 6. Create figure
-    fig = plt.figure(figsize=(FIG_WIDTH, FIG_HEIGHT))
+    fig = plt.figure(figsize=(
+        mm_to_inches(I_COVARIANCE_STYLE["heatmap_figure_width_mm"]),
+        mm_to_inches(I_COVARIANCE_STYLE["heatmap_figure_height_mm"]),
+    ))
 
     gs = gridspec.GridSpec(
         3, 1, figure=fig,
@@ -301,7 +314,7 @@ def main() -> None:
         bottom=BOTTOM_MARGIN, top=TOP_MARGIN,
     )
 
-    source_labels = [r["label"] for r in results]
+    source_labels = [_wrap_source_label(r["label"]) for r in results]
     x_edges = np.arange(year_min, year_max + 2)
     y_edges = np.arange(N_SOURCES, -1, -1)
 
@@ -317,22 +330,22 @@ def main() -> None:
     style_open_axes(ax_obs)
     ax_obs.plot(
         noaa_obs.index, noaa_obs.values,
-        color=DATASET_COLORS["source_1"], linewidth=1.0,
+        color=DATASET_COLORS["source_1"], linewidth=I_COVARIANCE_STYLE["line_width"],
         label="NOAA SST",
     )
     ax_obs.plot(
         hadisst_obs.index, hadisst_obs.values,
-        color=DATASET_COLORS["source_2"], linewidth=1.0,
+        color=DATASET_COLORS["source_2"], linewidth=I_COVARIANCE_STYLE["line_width"],
         linestyle="--", label="HadISST",
     )
-    ax_obs.axhline(0, color="0.65", linewidth=0.4, zorder=0, linestyle=":")
+    ax_obs.axhline(0, color="0.65", linewidth=I_COVARIANCE_STYLE["reference_line_width"], zorder=0, linestyle=":")
     ax_obs.set_xlim(year_min, year_max + 1)
-    ax_obs.set_ylabel("Annual obs var.\ncontribution", fontsize=AXIS_LABEL_SIZE)
+    ax_obs.set_ylabel("Annual obs var.\ncontribution", fontsize=I_COVARIANCE_STYLE["axis_label_size"])
     ax_obs.tick_params(axis="x", labelbottom=False)
-    ax_obs.tick_params(axis="y", labelsize=COMPACT_TICK_LABEL_SIZE)
+    ax_obs.tick_params(axis="y", labelsize=I_COVARIANCE_STYLE["tick_label_size"])
     ax_obs.set_xticks(year_ticks)
     ax_obs.legend(
-        loc="upper left", frameon=False, fontsize=LEGEND_SIZE,
+        loc="upper left", frameon=False, fontsize=I_COVARIANCE_STYLE["legend_size"],
         handlelength=1.2, borderpad=0.1, borderaxespad=0.2,
     )
 
@@ -345,31 +358,29 @@ def main() -> None:
     ax_diff = fig.add_subplot(gs[2])
     im_diff = _make_heatmap(ax_diff, cov_minus_obs_matrix, x_edges, y_edges, c2_lim, HEATMAP_CMAP_C)
     _style_heatmap_axes(ax_diff, source_labels, year_ticks, year_min, year_max, xlabel=True)
-    ax_diff.set_xlabel("Verification year", fontsize=AXIS_LABEL_SIZE)
+    ax_diff.set_xlabel("Verification year", fontsize=I_COVARIANCE_STYLE["axis_label_size"])
 
     # ---- Colorbars aligned with panels ----
-    cbar_width = 0.01
+    cbar_width = I_COVARIANCE_STYLE["colorbar_width"]
     pos_b = ax_cov.get_position()
     pos_c = ax_diff.get_position()
 
     cbar1_ax = fig.add_axes([RIGHT_MARGIN + 0.015, pos_b.y0, cbar_width, pos_b.height])
     cbar1 = fig.colorbar(im_cov, cax=cbar1_ax)
-    cbar1.set_label("cov(ensmean, obs)", fontsize=AXIS_LABEL_SIZE - 1, labelpad=3)
-    cbar1.ax.tick_params(labelsize=COLORBAR_TICK_SIZE, length=2, width=0.55, pad=1.5)
+    cbar1.set_label("cov(ensmean, obs)", fontsize=I_COVARIANCE_STYLE["colorbar_label_size"], labelpad=3)
+    cbar1.ax.tick_params(labelsize=I_COVARIANCE_STYLE["colorbar_tick_size"], length=2, width=0.55, pad=1.5)
     cbar1.ax.axhline(0, color="0.30", linewidth=0.4, linestyle=":")
 
     cbar2_ax = fig.add_axes([RIGHT_MARGIN + 0.015, pos_c.y0, cbar_width, pos_c.height])
     cbar2 = fig.colorbar(im_diff, cax=cbar2_ax)
-    cbar2.set_label("cov " + chr(8722) + " var(obs)", fontsize=AXIS_LABEL_SIZE - 1, labelpad=3)
-    cbar2.ax.tick_params(labelsize=COLORBAR_TICK_SIZE, length=2, width=0.55, pad=1.5)
+    cbar2.set_label("cov " + chr(8722) + " var(obs)", fontsize=I_COVARIANCE_STYLE["colorbar_label_size"], labelpad=3)
+    cbar2.ax.tick_params(labelsize=I_COVARIANCE_STYLE["colorbar_tick_size"], length=2, width=0.55, pad=1.5)
     cbar2.ax.axhline(0, color="0.30", linewidth=0.4, linestyle=":")
 
     # ---- Subfigure labels (bold label + gray description, tight spacing) ----
-    LBL_SIZE = AXIS_LABEL_SIZE
+    LBL_SIZE = I_COVARIANCE_STYLE["panel_label_size"]
     LBL_WT = "bold"
     LBL_GREY = "0.25"
-    DSC_SIZE = LBL_SIZE - 1
-
     pos_a = ax_obs.get_position()
     pos_b = ax_cov.get_position()
     pos_c = ax_diff.get_position()
@@ -389,7 +400,7 @@ def main() -> None:
     output_base = OUTPUT_DIR / OUTPUT_BASENAME
     saved_paths = save_publication_figure(
         fig,
-        [output_base.with_suffix(f".{fmt}") for fmt in OUTPUT_FORMATS],
+        figure_output_paths(output_base),
         dpi=FIGURE_DPI, bbox_inches=None, pad_inches=0.02,
     )
     for p in saved_paths:

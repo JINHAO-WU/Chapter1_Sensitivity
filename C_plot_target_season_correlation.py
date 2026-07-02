@@ -16,15 +16,13 @@ import pandas as pd
 
 from A_basic_sources import FIGURE_ROOT, get_dl_sources, load_source_forecast_table
 from plot_style import (
-    AXIS_LABEL_SIZE,
-    COLORBAR_TICK_SIZE,
-    COMPACT_TICK_LABEL_SIZE,
-    TITLE_SIZE,
-    VALUE_LABEL_SIZE,
+    C_TARGET_HEATMAP_STYLE,
+    DEFAULT_FIGURE_DPI,
     add_shared_axis_labels,
     configure_publication_style,
     disable_axis_grid,
-    panel_title,
+    figure_output_paths,
+    mm_to_inches,
     save_publication_figure,
     source_panel_grid_5x2,
     style_boxed_axes,
@@ -42,7 +40,7 @@ BASE_YEAR = 1871
 FIGURE_ID = "C"
 FIGURE_NAME = "target_season_correlation"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
-FIGURE_DPI = 600
+FIGURE_DPI = DEFAULT_FIGURE_DPI
 
 MAX_LEAD_CALC = 18
 MIN_SAMPLES = 3
@@ -175,19 +173,27 @@ def draw_heatmap(ax, matrix, panel, title, cmap, norm):
     image = ax.imshow(matrix.values, cmap=cmap, norm=norm, aspect="auto", interpolation="nearest")
     # Bold panel label only, normal-weight content title
     title_text = f"$\\mathbf{{({panel})}}$ {title}"
-    ax.set_title(title_text, loc="left", fontsize=TITLE_SIZE, pad=4)
+    ax.set_title(title_text, loc="left", fontsize=C_TARGET_HEATMAP_STYLE["title_size"], pad=3)
     ax.set_xticks(np.arange(matrix.shape[1]))
     ax.set_yticks(np.arange(matrix.shape[0]))
-    ax.set_xticklabels(matrix.columns, fontsize=COMPACT_TICK_LABEL_SIZE)
-    ax.set_yticklabels(matrix.index, fontsize=COMPACT_TICK_LABEL_SIZE)
-    ax.tick_params(length=2, width=0.55, pad=1.8)
+    ax.set_xticklabels(matrix.columns, fontsize=C_TARGET_HEATMAP_STYLE["tick_label_size"])
+    ax.set_yticklabels(matrix.index, fontsize=C_TARGET_HEATMAP_STYLE["tick_label_size"])
+    ax.tick_params(
+        length=C_TARGET_HEATMAP_STYLE["tick_length"],
+        width=C_TARGET_HEATMAP_STYLE["tick_width"],
+        pad=C_TARGET_HEATMAP_STYLE["tick_pad"],
+    )
     disable_axis_grid(ax)
     if ANNOTATE_CELLS:
         for r in range(matrix.shape[0]):
             for c in range(matrix.shape[1]):
                 v = matrix.iat[r, c]
                 if not np.isnan(v):
-                    ax.text(c, r, f"{v:.2f}", ha="center", va="center", fontsize=VALUE_LABEL_SIZE)
+                    ax.text(
+                        c, r, f"{v:.2f}",
+                        ha="center", va="center",
+                        fontsize=C_TARGET_HEATMAP_STYLE["cell_label_size"],
+                    )
     style_boxed_axes(ax)
     return image
 
@@ -204,7 +210,7 @@ def plot_reference_delta_figure(results, matrix_key, output_base):
 
     configure_publication_style()
 
-    fig = plt.figure(figsize=(PUB_FIG_WIDTH_MM / 25.4, PUB_FIG_HEIGHT_MM / 25.4))
+    fig = plt.figure(figsize=(mm_to_inches(PUB_FIG_WIDTH_MM), mm_to_inches(PUB_FIG_HEIGHT_MM)))
     axes_list = source_panel_grid_5x2(
         fig,
         left=0.10,
@@ -245,7 +251,7 @@ def plot_reference_delta_figure(results, matrix_key, output_base):
         ylabel=y_label,
         xlabel_y=0.048,
         ylabel_x=0.035,
-        fontsize=AXIS_LABEL_SIZE,
+        fontsize=C_TARGET_HEATMAP_STYLE["axis_label_size"],
     )
 
     # Reference colorbar to the LEFT of panel a
@@ -257,7 +263,12 @@ def plot_reference_delta_figure(results, matrix_key, output_base):
         ref_pos.height,
     ])
     cbar_ref = fig.colorbar(reference_image, cax=cax_ref)
-    style_colorbar(cbar_ref, label="Pearson r")
+    style_colorbar(
+        cbar_ref,
+        label="Pearson r",
+        fontsize=C_TARGET_HEATMAP_STYLE["colorbar_label_size"],
+        tick_labelsize=C_TARGET_HEATMAP_STYLE["colorbar_tick_size"],
+    )
     cbar_ref.ax.yaxis.set_ticks_position("left")
     cbar_ref.ax.yaxis.set_label_position("left")
 
@@ -270,12 +281,13 @@ def plot_reference_delta_figure(results, matrix_key, output_base):
     style_colorbar(
         cbar_delta,
         label=f"Delta Pearson r vs {labels_by_id[REFERENCE_DATASET_ID]}",
-        tick_labelsize=COLORBAR_TICK_SIZE,
+        fontsize=C_TARGET_HEATMAP_STYLE["colorbar_label_size"],
+        tick_labelsize=C_TARGET_HEATMAP_STYLE["colorbar_tick_size"],
     )
 
     saved_paths = save_publication_figure(
         fig,
-        [output_base.with_suffix(f".{s}") for s in ["png", "pdf"]],
+        figure_output_paths(output_base),
         dpi=FIGURE_DPI,
         pad_inches=0.02,
     )

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
@@ -23,11 +22,13 @@ from A_basic_sources import (
     parse_start_year,
 )
 from plot_style import (
-    AXIS_LABEL_SIZE,
-    COMPACT_TICK_LABEL_SIZE,
-    TITLE_SIZE,
+    DEFAULT_FIGURE_DPI,
+    H_VARIANCE_SEASONALITY_STYLE,
     add_shared_axis_labels,
     configure_publication_style,
+    figure_output_paths,
+    mm_to_inches,
+    save_publication_figure,
     source_panel_grid_5x2,
     style_source_panel_axes_5x2,
     style_open_axes,
@@ -45,16 +46,13 @@ FIGURE_ID = "H"
 FIGURE_NAME = "nino34_variance_seasonality"
 OUTPUT_DIR = FIGURE_ROOT / f"{FIGURE_ID}_{FIGURE_NAME}"
 OUTPUT_BASENAME = f"{FIGURE_ID}_{FIGURE_NAME}_first_forecast_month_lead1-12"
-FIGURE_DPI = 600
-OUTPUT_FORMATS = ("png", "pdf")
+FIGURE_DPI = DEFAULT_FIGURE_DPI
 
-FIGURE_WIDTH_INCH = 7.2
-FIGURE_HEIGHT_INCH = 10.8
 OBSERVATION_COLOR = "#1A1A1A"
-FORECAST_LINE_WIDTH = 1.60
-OBSERVATION_LINE_WIDTH = 1.80
-FORECAST_MARKER_SIZE = 2.80
-FORECAST_ALPHA = 0.82
+FORECAST_LINE_WIDTH = H_VARIANCE_SEASONALITY_STYLE["forecast_line_width"]
+OBSERVATION_LINE_WIDTH = H_VARIANCE_SEASONALITY_STYLE["observation_line_width"]
+FORECAST_MARKER_SIZE = H_VARIANCE_SEASONALITY_STYLE["forecast_marker_size"]
+FORECAST_ALPHA = H_VARIANCE_SEASONALITY_STYLE["forecast_alpha"]
 Y_AXIS_PADDING_FRACTION = 0.06
 
 SEASON_COLORS = {
@@ -182,7 +180,7 @@ def draw_source_panel(axis, source, observation_variance, forecast_variance, sta
             markersize=FORECAST_MARKER_SIZE,
             markerfacecolor="white",
             markeredgecolor=start_month_styles[first_forecast_month]["color"],
-            markeredgewidth=0.70,
+            markeredgewidth=H_VARIANCE_SEASONALITY_STYLE["marker_edge_width"],
             alpha=FORECAST_ALPHA,
             zorder=2,
         )
@@ -190,33 +188,44 @@ def draw_source_panel(axis, source, observation_variance, forecast_variance, sta
     axis.plot(extended_month_positions, repeated_obs,
               color=OBSERVATION_COLOR, linewidth=OBSERVATION_LINE_WIDTH, zorder=5)
     axis.set_title(f"$\\mathbf{{({panel_letter})}}$ {source['label']}",
-                   loc="left", color="black", fontsize=TITLE_SIZE, pad=3)
+                   loc="left", color="black",
+                   fontsize=H_VARIANCE_SEASONALITY_STYLE["panel_label_size"],
+                   pad=3)
     axis.set_xlim(1, 23)
     axis.set_xticks([1, 4, 7, 10, 13, 16, 19, 22])
     axis.set_xticklabels(["Jul", "Oct", "Jan", "Apr", "Jul", "Oct", "Jan", "Apr"],
-                          fontsize=COMPACT_TICK_LABEL_SIZE)
-    axis.tick_params(axis="x", labelrotation=0, pad=1.5)
+                          fontsize=H_VARIANCE_SEASONALITY_STYLE["tick_label_size"])
+    axis.tick_params(
+        axis="both",
+        labelsize=H_VARIANCE_SEASONALITY_STYLE["tick_label_size"],
+        length=H_VARIANCE_SEASONALITY_STYLE["tick_length"],
+        width=H_VARIANCE_SEASONALITY_STYLE["tick_width"],
+        pad=H_VARIANCE_SEASONALITY_STYLE["tick_pad"],
+    )
     style_open_axes(axis)
 
 
 def add_compact_top_legend(figure):
-    obs_handle = Line2D([0], [0], color=OBSERVATION_COLOR, linewidth=OBSERVATION_LINE_WIDTH + 1.0, label="Observed")
+    obs_handle = Line2D([0], [0], color=OBSERVATION_COLOR, linewidth=OBSERVATION_LINE_WIDTH + 0.8, label="Observed")
     season_handles = [
         Line2D([0], [0], color=colour, linewidth=FORECAST_LINE_WIDTH + 0.4, label=f"{season} start")
         for season, colour in SEASON_COLORS.items()
     ]
     marker_handles = [
         Line2D([0], [0], color="0.35", marker=marker, markerfacecolor="white",
-               markeredgewidth=0.70, linewidth=0, markersize=FORECAST_MARKER_SIZE + 0.5, label=label)
+               markeredgewidth=H_VARIANCE_SEASONALITY_STYLE["marker_edge_width"],
+               linewidth=0, markersize=FORECAST_MARKER_SIZE + 0.4, label=label)
         for marker, label in [("^", "1st month in season"), ("o", "2nd month in season"), ("s", "3rd month in season")]
     ]
     leg1 = figure.legend(handles=[obs_handle] + season_handles, loc="upper center",
-                         bbox_to_anchor=(0.5, 0.995), frameon=False, fontsize=9.0, ncol=5,
-                         handlelength=2.0, columnspacing=0.80, handletextpad=0.6, labelspacing=0.40)
+                         bbox_to_anchor=(0.5, 0.994), frameon=False,
+                         fontsize=H_VARIANCE_SEASONALITY_STYLE["legend_size"], ncol=5,
+                         handlelength=1.8, columnspacing=0.65, handletextpad=0.5, labelspacing=0.35)
     figure.add_artist(leg1)
     figure.legend(handles=marker_handles, loc="upper center",
-                  bbox_to_anchor=(0.5, 0.968), frameon=False, fontsize=8.5, ncol=3,
-                  handlelength=1.8, columnspacing=0.80, handletextpad=0.6, labelspacing=0.35)
+                  bbox_to_anchor=(0.5, 0.970), frameon=False,
+                  fontsize=H_VARIANCE_SEASONALITY_STYLE["marker_legend_size"], ncol=3,
+                  handlelength=1.6, columnspacing=0.70, handletextpad=0.5, labelspacing=0.30)
 
 
 def calculate_shared_y_limits(results):
@@ -237,9 +246,12 @@ def calculate_shared_y_limits(results):
 
 def plot_variance_seasonality(results):
     configure_publication_style()
-    figure = plt.figure(figsize=(FIGURE_WIDTH_INCH, FIGURE_HEIGHT_INCH))
-    axes = source_panel_grid_5x2(figure, left=0.10, right=0.98, bottom=0.055, top=0.935,
-                                 wspace=0.12, hspace=0.28)
+    figure = plt.figure(figsize=(
+        mm_to_inches(H_VARIANCE_SEASONALITY_STYLE["figure_width_mm"]),
+        mm_to_inches(H_VARIANCE_SEASONALITY_STYLE["figure_height_mm"]),
+    ))
+    axes = source_panel_grid_5x2(figure, left=0.10, right=0.98, bottom=0.070, top=0.932,
+                                 wspace=0.12, hspace=0.26)
     start_month_styles = {}
     for fm in range(1, 13):
         start_month_styles[fm] = {
@@ -252,20 +264,21 @@ def plot_variance_seasonality(results):
     add_compact_top_legend(figure)
     style_source_panel_axes_5x2(axes, n_visible=len(results))
     add_shared_axis_labels(figure, xlabel="Forecast verification month", ylabel=spread_axis_label(),
-                           xlabel_y=0.035, ylabel_x=0.014, fontsize=AXIS_LABEL_SIZE)
+                           xlabel_y=0.040, ylabel_x=0.014,
+                           fontsize=H_VARIANCE_SEASONALITY_STYLE["axis_label_size"])
     y_lower, y_upper = calculate_shared_y_limits(results)
     for axis in axes:
         axis.set_ylim(y_lower, y_upper)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_base = OUTPUT_DIR / OUTPUT_BASENAME
-    for fmt in OUTPUT_FORMATS:
-        path = output_base.with_suffix(f".{fmt}")
-        save_kwargs = {"bbox_inches": "tight", "pad_inches": 0.03}
-        if fmt == "png":
-            save_kwargs["dpi"] = FIGURE_DPI
-        figure.savefig(str(path), **save_kwargs)
+    saved_paths = save_publication_figure(
+        figure,
+        figure_output_paths(output_base),
+        dpi=FIGURE_DPI,
+        pad_inches=0.03,
+    )
     plt.close(figure)
-    return [output_base.with_suffix(f".{fmt}") for fmt in OUTPUT_FORMATS]
+    return saved_paths
 
 
 def main():
