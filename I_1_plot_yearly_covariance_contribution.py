@@ -85,8 +85,8 @@ HSPACE_GS: float = 0.10
 # Three panels: obs lines + cov heatmap + cov-minus-obs heatmap
 HEIGHT_RATIOS: tuple[float, ...] = (0.9, 2.5, 2.5)
 
-HEATMAP_CMAP_B = plt.cm.PuOr
-HEATMAP_CMAP_C = plt.cm.RdBu_r
+HEATMAP_CMAP_B = plt.cm.RdBu_r
+HEATMAP_CMAP_C = plt.cm.PuOr
 MISSING_GRAY_ALPHA: float = 0.35
 
 
