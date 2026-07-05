@@ -52,6 +52,7 @@ OBSERVATION_COLOR = "#1A1A1A"
 FORECAST_LINE_WIDTH = H_VARIANCE_SEASONALITY_STYLE["forecast_line_width"]
 OBSERVATION_LINE_WIDTH = H_VARIANCE_SEASONALITY_STYLE["observation_line_width"]
 FORECAST_MARKER_SIZE = H_VARIANCE_SEASONALITY_STYLE["forecast_marker_size"]
+OBSERVATION_MARKER_SIZE = H_VARIANCE_SEASONALITY_STYLE["observation_marker_size"]
 FORECAST_ALPHA = H_VARIANCE_SEASONALITY_STYLE["forecast_alpha"]
 Y_AXIS_PADDING_FRACTION = 0.06
 
@@ -186,14 +187,17 @@ def draw_source_panel(axis, source, observation_variance, forecast_variance, sta
         )
     repeated_obs = np.concatenate([observation_variance.to_numpy(), observation_variance.iloc[:11].to_numpy()])
     axis.plot(extended_month_positions, repeated_obs,
-              color=OBSERVATION_COLOR, linewidth=OBSERVATION_LINE_WIDTH, zorder=5)
+              color=OBSERVATION_COLOR, linewidth=OBSERVATION_LINE_WIDTH,
+              marker="o", markersize=OBSERVATION_MARKER_SIZE,
+              markerfacecolor=OBSERVATION_COLOR, markeredgecolor=OBSERVATION_COLOR,
+              zorder=5)
     axis.set_title(f"$\\mathbf{{({panel_letter})}}$ {source['label']}",
                    loc="left", color="black",
                    fontsize=H_VARIANCE_SEASONALITY_STYLE["panel_label_size"],
                    pad=3)
     axis.set_xlim(1, 23)
     axis.set_xticks([1, 4, 7, 10, 13, 16, 19, 22])
-    axis.set_xticklabels(["Jul", "Oct", "Jan", "Apr", "Jul", "Oct", "Jan", "Apr"],
+    axis.set_xticklabels(["Jan", "Apr", "Jul", "Oct", "Jan", "Apr", "Jul", "Oct"],
                           fontsize=H_VARIANCE_SEASONALITY_STYLE["tick_label_size"])
     axis.tick_params(
         axis="both",
@@ -206,7 +210,11 @@ def draw_source_panel(axis, source, observation_variance, forecast_variance, sta
 
 
 def add_compact_top_legend(figure):
-    obs_handle = Line2D([0], [0], color=OBSERVATION_COLOR, linewidth=OBSERVATION_LINE_WIDTH + 0.8, label="Observed")
+    obs_handle = Line2D(
+        [0], [0], color=OBSERVATION_COLOR, linewidth=OBSERVATION_LINE_WIDTH + 0.8,
+        marker="o", markerfacecolor=OBSERVATION_COLOR, markeredgecolor=OBSERVATION_COLOR,
+        markersize=OBSERVATION_MARKER_SIZE, label="Observed",
+    )
     season_handles = [
         Line2D([0], [0], color=colour, linewidth=FORECAST_LINE_WIDTH + 0.4, label=f"{season} start")
         for season, colour in SEASON_COLORS.items()
