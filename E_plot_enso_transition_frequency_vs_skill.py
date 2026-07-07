@@ -419,7 +419,7 @@ def _add_year_colorbar(fig, mappable, axes, *, label_size=None, tick_size=None):
     colorbar = fig.colorbar(mappable, cax=cax)
     style_colorbar(
         colorbar,
-        label="Test-start year",
+        label="Year (start of period)",
         fontsize=label_size or E_TRANSITION_STYLE["colorbar_label_size"],
         tick_labelsize=tick_size or E_TRANSITION_STYLE["colorbar_tick_size"],
     )
@@ -539,7 +539,7 @@ def _plot_skill_relationship(points):
 
     _add_transition_title(fig, show_year_note=True, note_size=10.0)
     style_source_panel_axes_5x2(axes, n_visible=len(ds_list))
-    add_shared_axis_labels(fig, xlabel="ENSO Transition Frequency",
+    add_shared_axis_labels(fig, xlabel="ENSO transition frequency fraction",
                            ylabel=f"Pearson r at lead {LEAD}-month",
                            xlabel_y=0.035, ylabel_x=0.040,
                            fontsize=E_TRANSITION_STYLE["axis_label_size"])
@@ -641,7 +641,7 @@ def _plot_frequency_over_time(points):
 
     _add_transition_title(fig, show_year_note=False, note_size=10.0)
     style_source_panel_axes_5x2(axes, n_visible=len(ds_list))
-    add_shared_axis_labels(fig, xlabel="Year (start of period)",
+    add_shared_axis_labels(fig, xlabel="Test-start year",
                            ylabel=_transition_axis_label(),
                            xlabel_y=0.035, ylabel_x=0.040,
                            fontsize=E_TRANSITION_STYLE["axis_label_size"])
