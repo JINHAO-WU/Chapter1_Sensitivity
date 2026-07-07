@@ -311,7 +311,7 @@ def plot_overview_lines(
     axes[-1].set_xlim(years[0], years[-1])
     add_shared_axis_labels(
         fig,
-        xlabel="First test data year",
+        xlabel="Year (start of period)",
         ylabel="Pearson r",
         xlabel_y=0.025,
         ylabel_x=0.022,
@@ -433,7 +433,7 @@ def plot_small_multiples(
     style_source_panel_axes_5x2(axes, n_visible=len(source_ids))
     add_shared_axis_labels(
         fig,
-        xlabel="First test data year",
+        xlabel="Year (start of period)",
         ylabel="Pearson r",
         xlabel_y=0.045,
         ylabel_x=0.014,

@@ -114,7 +114,7 @@ D_ENSO_PHASE_STYLE = {
 # Figure E is a dense 10-panel scatter/time-series figure. Keep annotations and
 # point outlines legible without letting them compete with the shared trends.
 E_TRANSITION_STYLE = {
-    "axis_label_size": 8.7,
+    "axis_label_size": 10.5,
     "tick_label_size": 7.6,
     "panel_label_size": 8.2,
     "annotation_size": 6.5,
@@ -139,7 +139,7 @@ E_TRANSITION_STYLE = {
 # annotation hierarchy needs to stay compact so both halves of each panel read
 # as one unit.
 G_CLASSIFICATION_STYLE = {
-    "axis_label_size": 8.5,
+    "axis_label_size": 10.5,
     "tick_label_size": 6.2,
     "panel_label_size": 7.5,
     "metric_title_size": 7.0,
@@ -158,7 +158,7 @@ G_CLASSIFICATION_STYLE = {
 # Figure H overlays many seasonal lead trajectories in each source panel. Keep
 # the forecast lines light enough for the observed annual cycle to remain clear.
 H_VARIANCE_SEASONALITY_STYLE = {
-    "axis_label_size": 8.8,
+    "axis_label_size": 10.5,
     "tick_label_size": 7.0,
     "panel_label_size": 8.0,
     "legend_size": 7.2,

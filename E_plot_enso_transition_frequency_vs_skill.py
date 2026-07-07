@@ -256,10 +256,10 @@ def _transition_title():
 
 def _transition_axis_label():
     if MODE_PROPS[TRANSITION_MODE][1]:
-        return "Extreme ENSO-neutral-Extreme ENSO transition frequency"
+        return "Extreme ENSO-neutral-Extreme ENSO transition frequency variable"
     if TRANSITION_MODE.startswith("neutral_"):
-        return "Neutral-ENSO-Neutral transition frequency"
-    return "ENSO event-neutral transition frequency"
+        return "Neutral-ENSO-Neutral transition frequency variable"
+    return "ENSO event-neutral transition frequency variable"
 
 
 def _filename_token():
@@ -395,17 +395,17 @@ def _panel_title(ds, idx):
     return f"$\\mathbf{{({chr(ord('a') + idx)})}}$ {ds}"
 
 
-def _add_transition_title(fig, show_year_note):
+def _add_transition_title(fig, show_year_note, *, note_size=None):
     """Add transition info and optional year-range note below the y-axis label."""
     note_text = _transition_title()
     if show_year_note and ANNOTATE_YEAR_RANGE is not None:
         s, e = ANNOTATE_YEAR_RANGE
         note_text += f"   |   Open red circles: {s}-{e}"
     fig.text(0.5, 0.010, note_text, ha="center", va="bottom",
-             fontsize=E_TRANSITION_STYLE["annotation_size"], color="#444444")
+             fontsize=note_size or E_TRANSITION_STYLE["annotation_size"], color="#444444")
 
 
-def _add_year_colorbar(fig, mappable, axes):
+def _add_year_colorbar(fig, mappable, axes, *, label_size=None, tick_size=None):
     """Place a longer year colorbar beside the middle rows of the 5x2 layout."""
     upper_pos = axes[3].get_position(fig)
     middle_pos = axes[5].get_position(fig)
@@ -420,8 +420,8 @@ def _add_year_colorbar(fig, mappable, axes):
     style_colorbar(
         colorbar,
         label="Test-start year",
-        fontsize=E_TRANSITION_STYLE["colorbar_label_size"],
-        tick_labelsize=E_TRANSITION_STYLE["colorbar_tick_size"],
+        fontsize=label_size or E_TRANSITION_STYLE["colorbar_label_size"],
+        tick_labelsize=tick_size or E_TRANSITION_STYLE["colorbar_tick_size"],
     )
 
 
@@ -529,13 +529,19 @@ def _plot_skill_relationship(points):
                                xl, yl, xticks, yticks, i) or sc
 
     if sc is not None:
-        _add_year_colorbar(fig, sc, axes)
+        _add_year_colorbar(
+            fig,
+            sc,
+            axes,
+            label_size=E_TRANSITION_STYLE["axis_label_size"],
+            tick_size=E_TRANSITION_STYLE["axis_label_size"],
+        )
 
-    _add_transition_title(fig, show_year_note=True)
+    _add_transition_title(fig, show_year_note=True, note_size=10.0)
     style_source_panel_axes_5x2(axes, n_visible=len(ds_list))
-    add_shared_axis_labels(fig, xlabel=_transition_axis_label(),
+    add_shared_axis_labels(fig, xlabel="ENSO Transition Frequency",
                            ylabel=f"Pearson r at lead {LEAD}-month",
-                           xlabel_y=0.035, ylabel_x=0.028,
+                           xlabel_y=0.035, ylabel_x=0.040,
                            fontsize=E_TRANSITION_STYLE["axis_label_size"])
     save_publication_figure(fig, _make_output_paths("frequency_vs_skill"),
                             dpi=FIGURE_DPI, pad_inches=0.03, print_paths=True)
@@ -625,13 +631,19 @@ def _plot_frequency_over_time(points):
                               yr_min, yr_max, f_min, f_max, i) or sc
 
     if sc is not None:
-        _add_year_colorbar(fig, sc, axes)
+        _add_year_colorbar(
+            fig,
+            sc,
+            axes,
+            label_size=E_TRANSITION_STYLE["axis_label_size"],
+            tick_size=E_TRANSITION_STYLE["axis_label_size"],
+        )
 
-    _add_transition_title(fig, show_year_note=False)
+    _add_transition_title(fig, show_year_note=False, note_size=10.0)
     style_source_panel_axes_5x2(axes, n_visible=len(ds_list))
-    add_shared_axis_labels(fig, xlabel="Test-start year",
+    add_shared_axis_labels(fig, xlabel="Year (start of period)",
                            ylabel=_transition_axis_label(),
-                           xlabel_y=0.035, ylabel_x=0.028,
+                           xlabel_y=0.035, ylabel_x=0.040,
                            fontsize=E_TRANSITION_STYLE["axis_label_size"])
     save_publication_figure(fig, _make_output_paths("frequency_over_time"),
                             dpi=FIGURE_DPI, pad_inches=0.03, print_paths=True)

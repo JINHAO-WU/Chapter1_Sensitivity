@@ -233,7 +233,7 @@ def plot_figure(dataset_results, lead, order, output_base):
     add_shared_axis_labels(
         fig,
         ylabel="Real",
-        ylabel_x=0.010,
+        ylabel_x=0.032,
         fontsize=G_CLASSIFICATION_STYLE["axis_label_size"],
     )
 

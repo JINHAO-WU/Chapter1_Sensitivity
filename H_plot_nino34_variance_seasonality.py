@@ -272,7 +272,7 @@ def plot_variance_seasonality(results):
     add_compact_top_legend(figure)
     style_source_panel_axes_5x2(axes, n_visible=len(results))
     add_shared_axis_labels(figure, xlabel="Forecast verification month", ylabel=spread_axis_label(),
-                           xlabel_y=0.040, ylabel_x=0.014,
+                           xlabel_y=0.040, ylabel_x=0.032,
                            fontsize=H_VARIANCE_SEASONALITY_STYLE["axis_label_size"])
     y_lower, y_upper = calculate_shared_y_limits(results)
     for axis in axes:
