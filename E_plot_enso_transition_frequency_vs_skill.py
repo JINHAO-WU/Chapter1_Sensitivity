@@ -534,7 +534,7 @@ def _plot_skill_relationship(points):
     _add_transition_title(fig, show_year_note=True)
     style_source_panel_axes_5x2(axes, n_visible=len(ds_list))
     add_shared_axis_labels(fig, xlabel=_transition_axis_label(),
-                           ylabel=f"ACC at lead {LEAD}-month",
+                           ylabel=f"Pearson r at lead {LEAD}-month",
                            xlabel_y=0.035, ylabel_x=0.028,
                            fontsize=E_TRANSITION_STYLE["axis_label_size"])
     save_publication_figure(fig, _make_output_paths("frequency_vs_skill"),
