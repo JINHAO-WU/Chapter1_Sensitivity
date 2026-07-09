@@ -60,9 +60,12 @@ TIME_END = None
 PUB_FIG_WIDTH_MM = 183
 PUB_FIG_HEIGHT_MM = 180
 REFERENCE_DATASET_ID = "source_1"
-REFERENCE_CMAP = "viridis"
+REFERENCE_CMAP = "RdBu_r"
+REFERENCE_CMAP_MIN_FRACTION = 0.18
+REFERENCE_CMAP_N_COLORS = 256
 DELTA_CMAP = "PuOr"
-REFERENCE_VMIN = 0.2
+REFERENCE_VMIN = 0.0
+REFERENCE_THRESHOLD = 0.5
 REFERENCE_VMAX = 1.0
 REFERENCE_COLORBAR_WIDTH = 0.015
 
@@ -169,6 +172,15 @@ def prepare_dataset(source):
 # Plotting and main workflow
 # =============================================================================
 
+def truncated_colormap(cmap_name, min_fraction, max_fraction=1.0, n_colors=256):
+    base_cmap = mpl.colormaps[cmap_name]
+    colors = base_cmap(np.linspace(min_fraction, max_fraction, n_colors))
+    return mpl.colors.LinearSegmentedColormap.from_list(
+        f"{cmap_name}_{min_fraction:.2f}_{max_fraction:.2f}",
+        colors,
+    )
+
+
 def draw_heatmap(ax, matrix, panel, title, cmap, norm):
     image = ax.imshow(matrix.values, cmap=cmap, norm=norm, aspect="auto", interpolation="nearest")
     # Bold panel label only, normal-weight content title
@@ -222,12 +234,21 @@ def plot_reference_delta_figure(results, matrix_key, output_base):
     )
     panel_labels = [chr(ord("a") + i) for i in range(len(axes_list))]
 
-    reference_norm = mpl.colors.Normalize(vmin=REFERENCE_VMIN, vmax=REFERENCE_VMAX)
+    reference_norm = mpl.colors.TwoSlopeNorm(
+        vmin=REFERENCE_VMIN,
+        vcenter=REFERENCE_THRESHOLD,
+        vmax=REFERENCE_VMAX,
+    )
+    reference_cmap = truncated_colormap(
+        REFERENCE_CMAP,
+        REFERENCE_CMAP_MIN_FRACTION,
+        n_colors=REFERENCE_CMAP_N_COLORS,
+    )
     delta_norm = mpl.colors.TwoSlopeNorm(vmin=-delta_limit, vcenter=0.0, vmax=delta_limit)
 
     reference_image = draw_heatmap(
         axes_list[0], reference, "a",
-        labels_by_id[REFERENCE_DATASET_ID], REFERENCE_CMAP, reference_norm,
+        labels_by_id[REFERENCE_DATASET_ID], reference_cmap, reference_norm,
     )
 
     delta_image = None
@@ -271,6 +292,7 @@ def plot_reference_delta_figure(results, matrix_key, output_base):
     )
     cbar_ref.ax.yaxis.set_ticks_position("left")
     cbar_ref.ax.yaxis.set_label_position("left")
+    cbar_ref.ax.axhline(REFERENCE_THRESHOLD, color="0.30", linewidth=0.4, linestyle=":")
 
     # Delta colorbar at bottom across full width
     cax_delta = fig.add_axes([

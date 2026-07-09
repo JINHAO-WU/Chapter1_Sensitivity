@@ -75,20 +75,20 @@ PLOT_STYLE = {
     "highlight_color": "#b2182b",
 }
 
-# (label, extreme, event_state, state_run_pattern, arrow_label)
+# (extreme, event_state, state_run_pattern, arrow_label)
 MODE_PROPS = {
     "el_nino_neutral_el_nino":
-        ("EN-Neutral-EN", False, 1, (1, 0, 1), "EN -> Neutral -> EN"),
+        (False, 1, (1, 0, 1), "EN -> Neutral -> EN"),
     "la_nina_neutral_la_nina":
-        ("LN-Neutral-LN", False, -1, (-1, 0, -1), "LN -> Neutral -> LN"),
+        (False, -1, (-1, 0, -1), "LN -> Neutral -> LN"),
     "neutral_el_nino_neutral":
-        ("Neutral-EN-Neutral", False, 1, (0, 1, 0), "Neutral -> EN -> Neutral"),
+        (False, 1, (0, 1, 0), "Neutral -> EN -> Neutral"),
     "neutral_la_nina_neutral":
-        ("Neutral-LN-Neutral", False, -1, (0, -1, 0), "Neutral -> LN -> Neutral"),
+        (False, -1, (0, -1, 0), "Neutral -> LN -> Neutral"),
     "extreme_el_nino_neutral_extreme_el_nino":
-        ("ExEN-Neutral-ExEN", True, 1, (1, 0, 1), "ExEN -> Neutral -> ExEN"),
+        (True, 1, (1, 0, 1), "ExEN -> Neutral -> ExEN"),
     "extreme_la_nina_neutral_extreme_la_nina":
-        ("ExLN-Neutral-ExLN", True, -1, (-1, 0, -1), "ExLN -> Neutral -> ExLN"),
+        (True, -1, (-1, 0, -1), "ExLN -> Neutral -> ExLN"),
 }
 
 
@@ -238,28 +238,24 @@ def _transition_frequency(values):
     if valid[:-1].sum() == 0:
         return math.nan
 
-    label, is_ext, ev_state, pattern, _arrow = MODE_PROPS[TRANSITION_MODE]
+    is_ext, ev_state, pattern, _arrow = MODE_PROPS[TRANSITION_MODE]
     runs = _get_runs(values, is_ext)
     count = (_count_extreme_pattern(runs, values, pattern, ev_state) if is_ext
              else _count_pattern(runs, pattern))
     return float(count / valid[:-1].sum())
 
 
-def _mode_label():
-    return MODE_PROPS[TRANSITION_MODE][0]
-
-
 def _transition_title():
-    arrow = MODE_PROPS[TRANSITION_MODE][4]
+    arrow = MODE_PROPS[TRANSITION_MODE][3]
     return f"Transition: {arrow}"
 
 
 def _transition_axis_label():
-    if MODE_PROPS[TRANSITION_MODE][1]:
-        return "Extreme ENSO-neutral-Extreme ENSO transition frequency variable"
+    if MODE_PROPS[TRANSITION_MODE][0]:
+        return "Extreme ENSO-neutral-Extreme ENSO transition frequency fraction"
     if TRANSITION_MODE.startswith("neutral_"):
-        return "Neutral-ENSO-Neutral transition frequency variable"
-    return "ENSO event-neutral transition frequency variable"
+        return "Neutral-ENSO-Neutral transition frequency fraction"
+    return "ENSO event-neutral transition frequency fraction"
 
 
 def _filename_token():
