@@ -23,7 +23,6 @@ from A_basic_sources import (
 )
 from plot_style import (
     DEFAULT_FIGURE_DPI,
-    I_COVARIANCE_STYLE,
     NMME_COLORS,
     add_shared_axis_labels,
     configure_publication_style,
@@ -41,6 +40,18 @@ from plot_style import (
 # =============================================================================
 # User configuration
 # =============================================================================
+
+I_COVARIANCE_STYLE = {
+    "axis_label_size": 8.6,
+    "tick_label_size": 6.8,
+    "panel_label_size": 7.6,
+    "annotation_size": 6.4,
+    "legend_size": 7.0,
+    "line_width": 1.15,
+    "reference_line_width": 0.55,
+    "line_figure_width_mm": 183,
+    "line_figure_height_mm": 255,
+}
 
 BASE_YEAR = 1871
 INPUT_WINDOW_MONTHS = 6

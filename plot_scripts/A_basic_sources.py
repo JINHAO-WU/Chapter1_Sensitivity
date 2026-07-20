@@ -11,7 +11,8 @@ import pandas as pd
 
 
 PICKLE_BASE_DIR = Path(r"E:/OneDrive - University of Leeds/A-Research/Study_timeseies/TL_CMIP/File")
-FIGURE_ROOT = Path("Figures_ALL")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+FIGURE_ROOT = PROJECT_ROOT / "Figures_ALL"
 
 _SOURCE_DEFINITIONS = [
     {"id": "source_1", "folder": "pickle_HamCNN_input6_var1_sst_NOAA", "label": "SST (NOAA)"},

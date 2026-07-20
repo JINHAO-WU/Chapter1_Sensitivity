@@ -17,7 +17,6 @@ from A_basic_sources import FIGURE_ROOT, get_dl_sources, load_source_forecast_ta
 from plot_style import (
     DEFAULT_FIGURE_DPI,
     EVENT_COLORS,
-    G_CLASSIFICATION_STYLE,
     add_shared_axis_labels,
     configure_publication_style,
     disable_axis_grid,
@@ -29,6 +28,28 @@ from plot_style import (
     style_open_axes,
     validate_data_sources,
 )
+
+
+# =============================================================================
+# User configuration
+# =============================================================================
+
+G_CLASSIFICATION_STYLE = {
+    "axis_label_size": 10.5,
+    "tick_label_size": 6.2,
+    "panel_label_size": 7.5,
+    "metric_title_size": 7.0,
+    "cell_label_size": 5.2,
+    "bar_label_size": 5.2,
+    "colorbar_tick_size": 6.0,
+    "tick_length": 1.8,
+    "tick_width": 0.5,
+    "tick_pad": 1.2,
+    "bar_edge_width": 0.55,
+    "heatmap_colorbar_height": 0.010,
+    "figure_width_mm": 183,
+    "figure_height_mm": 270,
+}
 
 
 BASE_YEAR = 1871

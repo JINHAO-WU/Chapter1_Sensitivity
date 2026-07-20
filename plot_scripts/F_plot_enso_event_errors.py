@@ -21,9 +21,6 @@ from A_basic_sources import (
     load_prediction_arrays,
 )
 from plot_style import (
-    AXIS_LABEL_SIZE,
-    LEGEND_SIZE,
-    TITLE_SIZE,
     add_compact_figure_legend,
     configure_publication_style,
     dataset_color,
@@ -38,6 +35,12 @@ from plot_style import (
 # =============================================================================
 # User configuration
 # =============================================================================
+
+F_EVENT_ERRORS_STYLE = {
+    "axis_label_size": 11,
+    "legend_size": 8,
+    "title_size": 9,
+}
 
 FIGURE_ID = "F"
 FIGURE_NAME = "enso_event_errors"
@@ -218,17 +221,20 @@ def _source_legend(fig, data_sources, bbox_y):
     handles = [Line2D([0], [0], color=dataset_color(s["id"]), linewidth=2.0,
                       label=s["label"]) for s in data_sources]
     add_compact_figure_legend(fig, handles=handles, ncol=5,
-                              bbox_to_anchor=(0.5, bbox_y), fontsize=LEGEND_SIZE,
+                              bbox_to_anchor=(0.5, bbox_y),
+                              fontsize=F_EVENT_ERRORS_STYLE["legend_size"],
                               columnspacing=0.40, handlelength=1.20, labelspacing=0.25)
 
 
 def _style_ax(ax, title: str, panel_idx: int):
     ax.axhline(0, color="#444444", linewidth=1.0, linestyle=(0, (5, 4)))
     title_text = f"$\\mathbf{{({chr(ord('a') + panel_idx)})}}$ {title}"
-    ax.set_title(title_text, loc="left", fontsize=TITLE_SIZE)
+    ax.set_title(title_text, loc="left", fontsize=F_EVENT_ERRORS_STYLE["title_size"])
     style_light_grid(ax, axis="y", linewidth=0.7)
     style_light_grid(ax, axis="x", color="#EEEEEE", linewidth=0.5)
-    ax.tick_params(axis="both", direction="in", labelsize=LEGEND_SIZE)
+    ax.tick_params(
+        axis="both", direction="in", labelsize=F_EVENT_ERRORS_STYLE["legend_size"]
+    )
     style_open_axes(ax)
 
 
@@ -245,9 +251,14 @@ def _plot_amplitude(results: list[dict], data_sources: list[dict], out: Path):
         _style_ax(ax, ec, i)
 
     for ax in axes[2:]:
-        ax.set_xlabel("Test-set start year", fontsize=AXIS_LABEL_SIZE)
+        ax.set_xlabel(
+            "Test-set start year", fontsize=F_EVENT_ERRORS_STYLE["axis_label_size"]
+        )
     for ax in axes[::2]:
-        ax.set_ylabel("Amplitude underestimation", fontsize=AXIS_LABEL_SIZE)
+        ax.set_ylabel(
+            "Amplitude underestimation",
+            fontsize=F_EVENT_ERRORS_STYLE["axis_label_size"],
+        )
 
     _source_legend(fig, data_sources, 0.97)
     fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.92))
@@ -268,8 +279,13 @@ def _plot_peak_error(results: list[dict], data_sources: list[dict], out: Path):
         _style_ax(ax, grp, i)
 
     for ax in axes:
-        ax.set_xlabel("Test-set start year", fontsize=AXIS_LABEL_SIZE)
-    axes[0].set_ylabel("Peak-month error (months)", fontsize=AXIS_LABEL_SIZE)
+        ax.set_xlabel(
+            "Test-set start year", fontsize=F_EVENT_ERRORS_STYLE["axis_label_size"]
+        )
+    axes[0].set_ylabel(
+        "Peak-month error (months)",
+        fontsize=F_EVENT_ERRORS_STYLE["axis_label_size"],
+    )
 
     _source_legend(fig, data_sources, 0.98)
     fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.90))

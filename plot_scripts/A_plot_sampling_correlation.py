@@ -23,7 +23,6 @@ from A_basic_sources import (
     parse_start_year,
 )
 from plot_style import (
-    A_SAMPLING_STYLE,
     DEFAULT_FIGURE_DPI,
     add_compact_figure_legend,
     add_shared_axis_labels,
@@ -45,6 +44,25 @@ from plot_style import (
 # =============================================================================
 # User configuration
 # =============================================================================
+
+A_SAMPLING_STYLE = {
+    "axis_label_size": 9.0,
+    "tick_label_size": 8.0,
+    "panel_label_size": 8.5,
+    "legend_size": 7.0,
+    "small_tick_label_size": 7.0,
+    "line_width": 1.0,
+    "comparison_line_width": 1.45,
+    "reference_line_width": 0.7,
+    "lead_colors": (
+        "#f28e8c",
+        "#4c9be8",
+        "#59a14f",
+        "#af7aa1",
+        "#edc948",
+        "#76b7b2",
+    ),
+}
 
 FIGURE_ID = "A"
 FIGURE_NAME = "sampling_correlation"

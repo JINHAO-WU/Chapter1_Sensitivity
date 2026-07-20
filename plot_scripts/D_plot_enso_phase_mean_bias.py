@@ -23,7 +23,6 @@ from A_basic_sources import (
     parse_start_year,
 )
 from plot_style import (
-    D_ENSO_PHASE_STYLE,
     DEFAULT_FIGURE_DPI,
     add_compact_figure_legend,
     configure_publication_style,
@@ -35,6 +34,27 @@ from plot_style import (
     style_open_axes,
     validate_data_sources,
 )
+
+
+# =============================================================================
+# User configuration
+# =============================================================================
+
+D_ENSO_PHASE_STYLE = {
+    "axis_label_size": 8.8,
+    "tick_label_size": 8.0,
+    "panel_label_size": 8.8,
+    "legend_size": 6.8,
+    "line_width": 1.25,
+    "legend_line_width": 1.45,
+    "marker_size": 3.0,
+    "zero_line_width": 0.65,
+    "grid_line_width": 0.55,
+    "tick_length": 2.4,
+    "tick_width": 0.6,
+    "figure_width_mm": 183,
+    "figure_height_mm": 132,
+}
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")

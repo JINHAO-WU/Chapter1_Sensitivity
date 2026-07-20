@@ -16,7 +16,6 @@ import pandas as pd
 
 from A_basic_sources import FIGURE_ROOT, get_dl_sources, load_source_forecast_table
 from plot_style import (
-    C_TARGET_HEATMAP_STYLE,
     DEFAULT_FIGURE_DPI,
     add_shared_axis_labels,
     configure_publication_style,
@@ -35,6 +34,18 @@ from plot_style import (
 # =============================================================================
 # User configuration
 # =============================================================================
+
+C_TARGET_HEATMAP_STYLE = {
+    "axis_label_size": 8.5,
+    "title_size": 7.8,
+    "tick_label_size": 6.6,
+    "colorbar_label_size": 7.0,
+    "colorbar_tick_size": 6.3,
+    "cell_label_size": 5.4,
+    "tick_length": 1.8,
+    "tick_width": 0.5,
+    "tick_pad": 1.4,
+}
 
 BASE_YEAR = 1871
 FIGURE_ID = "C"

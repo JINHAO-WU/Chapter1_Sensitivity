@@ -11,7 +11,8 @@ Layout (single integrated figure):
 
 X-axes of (a), (b) and (c) are strictly aligned.
 
-Run:  python I_1_plot_yearly_covariance_contribution.py
+Run from the repository root:
+    python plot_scripts/I_1_plot_yearly_covariance_contribution.py
 """
 
 from __future__ import annotations
@@ -35,7 +36,6 @@ from A_basic_sources import (
 from plot_style import (
     DATASET_COLORS,
     DEFAULT_FIGURE_DPI,
-    I_COVARIANCE_STYLE,
     configure_publication_style,
     figure_output_paths,
     mm_to_inches,
@@ -47,6 +47,20 @@ from plot_style import (
 # =============================================================================
 # User configuration
 # =============================================================================
+
+I_COVARIANCE_STYLE = {
+    "axis_label_size": 8.6,
+    "tick_label_size": 6.8,
+    "panel_label_size": 7.6,
+    "legend_size": 7.0,
+    "line_width": 1.15,
+    "reference_line_width": 0.55,
+    "colorbar_label_size": 7.0,
+    "colorbar_tick_size": 6.3,
+    "colorbar_width": 0.010,
+    "heatmap_figure_width_mm": 183,
+    "heatmap_figure_height_mm": 150,
+}
 
 BASE_YEAR: int = 1871
 INPUT_WINDOW_MONTHS: int = 6

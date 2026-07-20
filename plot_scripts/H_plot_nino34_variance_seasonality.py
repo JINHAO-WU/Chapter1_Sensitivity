@@ -23,7 +23,6 @@ from A_basic_sources import (
 )
 from plot_style import (
     DEFAULT_FIGURE_DPI,
-    H_VARIANCE_SEASONALITY_STYLE,
     add_shared_axis_labels,
     configure_publication_style,
     figure_output_paths,
@@ -34,6 +33,30 @@ from plot_style import (
     style_open_axes,
     validate_data_sources,
 )
+
+
+# =============================================================================
+# User configuration
+# =============================================================================
+
+H_VARIANCE_SEASONALITY_STYLE = {
+    "axis_label_size": 10.5,
+    "tick_label_size": 7.0,
+    "panel_label_size": 8.0,
+    "legend_size": 7.2,
+    "marker_legend_size": 6.8,
+    "forecast_line_width": 1.15,
+    "observation_line_width": 1.15,
+    "forecast_marker_size": 2.4,
+    "observation_marker_size": 2.2,
+    "marker_edge_width": 0.60,
+    "forecast_alpha": 0.82,
+    "tick_length": 2.0,
+    "tick_width": 0.55,
+    "tick_pad": 1.4,
+    "figure_width_mm": 183,
+    "figure_height_mm": 270,
+}
 
 BASE_YEAR = 1871
 INPUT_WINDOW_MONTHS = 6

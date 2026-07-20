@@ -1,7 +1,8 @@
-"""Lightweight checks for the shared Chapter 1 plotting style."""
+"""Lightweight checks for shared helpers and figure-local plotting styles."""
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 import matplotlib
@@ -11,15 +12,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from plot_style import (
-    A_SAMPLING_STYLE,
     AXES_LINEWIDTH,
-    B_LEAD_CORRELATION_STYLE,
-    C_TARGET_HEATMAP_STYLE,
-    D_ENSO_PHASE_STYLE,
-    E_TRANSITION_STYLE,
-    G_CLASSIFICATION_STYLE,
-    H_VARIANCE_SEASONALITY_STYLE,
-    I_COVARIANCE_STYLE,
     COLORBAR_TICK_SIZE,
     DATASET_COLORS,
     DEFAULT_OUTPUT_FORMATS,
@@ -42,6 +35,27 @@ from plot_style import (
     style_source_panel_axes_5x2,
     validate_data_sources,
 )
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def _literal_assignment(file_name: str, variable_name: str) -> dict:
+    """Read a top-level literal assignment without importing the plotting script."""
+    source_path = SCRIPT_DIR / file_name
+    tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            names = [target.id for target in node.targets if isinstance(target, ast.Name)]
+            if variable_name in names:
+                return ast.literal_eval(node.value)
+        if (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == variable_name
+        ):
+            return ast.literal_eval(node.value)
+    raise AssertionError(f"{variable_name} not found in {source_path.name}")
 
 
 def test_shared_style_and_axes_frames() -> None:
@@ -133,32 +147,75 @@ def test_legend_reordering_reads_by_row() -> None:
     assert reordered_handles == [labels.index(label) for label in reordered_labels]
 
 
-def test_publication_output_helpers_and_a_preset() -> None:
-    """Validate small shared helpers used by Figure A without changing other figures."""
+def test_publication_output_helpers() -> None:
+    """Validate shared output helpers independently of figure-local settings."""
     assert mm_to_inches(25.4) == 1.0
     assert DEFAULT_OUTPUT_FORMATS == ("png", "pdf")
     assert figure_output_paths(Path("figure_a")) == [
         Path("figure_a.png"),
         Path("figure_a.pdf"),
     ]
-    assert A_SAMPLING_STYLE["legend_size"] < A_SAMPLING_STYLE["axis_label_size"]
-    assert A_SAMPLING_STYLE["small_tick_label_size"] <= A_SAMPLING_STYLE["tick_label_size"]
-    assert B_LEAD_CORRELATION_STYLE["legend_size"] < B_LEAD_CORRELATION_STYLE["axis_label_size"]
-    assert B_LEAD_CORRELATION_STYLE["marker_size"] < 4.0
-    assert C_TARGET_HEATMAP_STYLE["tick_label_size"] < C_TARGET_HEATMAP_STYLE["axis_label_size"]
-    assert C_TARGET_HEATMAP_STYLE["colorbar_tick_size"] <= C_TARGET_HEATMAP_STYLE["colorbar_label_size"]
-    assert D_ENSO_PHASE_STYLE["legend_size"] < D_ENSO_PHASE_STYLE["axis_label_size"]
-    assert D_ENSO_PHASE_STYLE["marker_size"] < 4.0
-    assert D_ENSO_PHASE_STYLE["figure_width_mm"] == 183
-    assert E_TRANSITION_STYLE["point_size"] < 32
-    assert E_TRANSITION_STYLE["annotation_size"] < E_TRANSITION_STYLE["axis_label_size"]
-    assert E_TRANSITION_STYLE["figure_width_mm"] == 183
-    assert G_CLASSIFICATION_STYLE["cell_label_size"] < G_CLASSIFICATION_STYLE["axis_label_size"]
-    assert G_CLASSIFICATION_STYLE["bar_edge_width"] < 0.7
-    assert G_CLASSIFICATION_STYLE["figure_width_mm"] == 183
-    assert H_VARIANCE_SEASONALITY_STYLE["forecast_line_width"] < H_VARIANCE_SEASONALITY_STYLE["observation_line_width"]
-    assert H_VARIANCE_SEASONALITY_STYLE["legend_size"] < H_VARIANCE_SEASONALITY_STYLE["axis_label_size"]
-    assert H_VARIANCE_SEASONALITY_STYLE["figure_width_mm"] == 183
-    assert I_COVARIANCE_STYLE["line_figure_width_mm"] == 183
-    assert I_COVARIANCE_STYLE["heatmap_figure_width_mm"] == 183
-    assert I_COVARIANCE_STYLE["tick_label_size"] < I_COVARIANCE_STYLE["axis_label_size"]
+
+
+def test_figure_styles_are_local_and_valid() -> None:
+    """Validate local style dictionaries without executing data-heavy scripts."""
+    style_locations = [
+        ("A_plot_sampling_correlation.py", "A_SAMPLING_STYLE"),
+        ("B_plot_dl_nmme_lead_correlation.py", "B_LEAD_CORRELATION_STYLE"),
+        ("C_plot_target_season_correlation.py", "C_TARGET_HEATMAP_STYLE"),
+        ("D_plot_enso_phase_mean_bias.py", "D_ENSO_PHASE_STYLE"),
+        ("E_plot_enso_transition_frequency_vs_skill.py", "E_TRANSITION_STYLE"),
+        ("F_plot_enso_event_errors.py", "F_EVENT_ERRORS_STYLE"),
+        ("G_plot_enso_classification_metrics.py", "G_CLASSIFICATION_STYLE"),
+        ("H_plot_nino34_variance_seasonality.py", "H_VARIANCE_SEASONALITY_STYLE"),
+        ("I_plot_yearly_covariance_contribution.py", "I_COVARIANCE_STYLE"),
+        ("I_1_plot_yearly_covariance_contribution.py", "I_COVARIANCE_STYLE"),
+    ]
+    styles = {
+        (file_name, style_name): _literal_assignment(file_name, style_name)
+        for file_name, style_name in style_locations
+    }
+
+    for style in styles.values():
+        assert style
+        assert all(isinstance(key, str) for key in style)
+
+    assert styles[("A_plot_sampling_correlation.py", "A_SAMPLING_STYLE")]["lead_colors"]
+    assert styles[("B_plot_dl_nmme_lead_correlation.py", "B_LEAD_CORRELATION_STYLE")]["marker_size"] == 3.0
+    assert styles[("C_plot_target_season_correlation.py", "C_TARGET_HEATMAP_STYLE")]["cell_label_size"] == 5.4
+    assert styles[("D_plot_enso_phase_mean_bias.py", "D_ENSO_PHASE_STYLE")]["figure_width_mm"] == 183
+    assert styles[("E_plot_enso_transition_frequency_vs_skill.py", "E_TRANSITION_STYLE")]["point_size"] == 24
+    assert styles[("F_plot_enso_event_errors.py", "F_EVENT_ERRORS_STYLE")]["axis_label_size"] == 11
+    assert styles[("G_plot_enso_classification_metrics.py", "G_CLASSIFICATION_STYLE")]["figure_width_mm"] == 183
+
+    h_style = styles[("H_plot_nino34_variance_seasonality.py", "H_VARIANCE_SEASONALITY_STYLE")]
+    assert h_style["forecast_line_width"] == 1.15
+    assert h_style["observation_line_width"] == 1.15
+
+    assert styles[("I_plot_yearly_covariance_contribution.py", "I_COVARIANCE_STYLE")]["line_figure_width_mm"] == 183
+    assert styles[("I_1_plot_yearly_covariance_contribution.py", "I_COVARIANCE_STYLE")]["heatmap_figure_width_mm"] == 183
+
+
+def test_shared_module_has_no_figure_specific_style_dicts() -> None:
+    """Keep per-figure configuration out of the shared style module."""
+    source_path = SCRIPT_DIR / "plot_style.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+    assigned_names = {
+        target.id
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+    forbidden_names = {
+        "A_SAMPLING_STYLE",
+        "B_LEAD_CORRELATION_STYLE",
+        "C_TARGET_HEATMAP_STYLE",
+        "D_ENSO_PHASE_STYLE",
+        "E_TRANSITION_STYLE",
+        "F_EVENT_ERRORS_STYLE",
+        "G_CLASSIFICATION_STYLE",
+        "H_VARIANCE_SEASONALITY_STYLE",
+        "I_COVARIANCE_STYLE",
+    }
+    assert assigned_names.isdisjoint(forbidden_names)

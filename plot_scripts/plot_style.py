@@ -34,9 +34,6 @@ ANNOTATION_SIZE = 7.5
 # Shared axis and major-tick stroke settings in points.
 AXES_LINEWIDTH = 0.65
 TICK_LENGTH = 3
-COMPACT_TICK_LENGTH = 2.2
-COMPACT_TICK_WIDTH = 0.6
-COMPACT_TICK_PAD = 1.5
 LIGHT_GRID_COLOR = "#D9D9D9"
 LIGHT_GRID_LINEWIDTH = 0.55
 LIGHT_GRID_ALPHA = 0.8
@@ -45,155 +42,6 @@ LIGHT_GRID_ALPHA = 0.8
 MM_PER_INCH = 25.4
 DEFAULT_FIGURE_DPI = 600
 DEFAULT_OUTPUT_FORMATS = ("png", "pdf")
-
-# Figure A uses a compact 183-mm publication layout. Keep this preset local to
-# the sampling-correlation figures so later figures can choose their own scale.
-A_SAMPLING_STYLE = {
-    "axis_label_size": 9.0,
-    "tick_label_size": 8.0,
-    "panel_label_size": 8.5,
-    "legend_size": 7.0,
-    "small_tick_label_size": 7.0,
-    "line_width": 1.0,
-    "comparison_line_width": 1.45,
-    "reference_line_width": 0.7,
-    "lead_colors": (
-        "#f28e8c",
-        "#4c9be8",
-        "#59a14f",
-        "#af7aa1",
-        "#edc948",
-        "#76b7b2",
-    ),
-}
-
-# Figure B is a single lead-correlation line plot. Keep markers visible but
-# smaller than the current draft so the dense legend does not dominate.
-B_LEAD_CORRELATION_STYLE = {
-    "axis_label_size": 8.5,
-    "tick_label_size": 8.0,
-    "legend_size": 6.8,
-    "line_width": 1.25,
-    "marker_size": 3.0,
-    "zero_line_width": 0.6,
-    "reference_line_width": 0.8,
-}
-
-# Figure C is a dense 10-panel heatmap. Use compact typography so the panel
-# titles and shared axis labels support the matrices without overpowering them.
-C_TARGET_HEATMAP_STYLE = {
-    "axis_label_size": 8.5,
-    "title_size": 7.8,
-    "tick_label_size": 6.6,
-    "colorbar_label_size": 7.0,
-    "colorbar_tick_size": 6.3,
-    "cell_label_size": 5.4,
-    "tick_length": 1.8,
-    "tick_width": 0.5,
-    "tick_pad": 1.4,
-}
-
-# Figure D is a two-panel lead-bias line figure. Keep the panel spacing compact
-# and the markers secondary to the lead-dependent trajectories.
-D_ENSO_PHASE_STYLE = {
-    "axis_label_size": 8.8,
-    "tick_label_size": 8.0,
-    "panel_label_size": 8.8,
-    "legend_size": 6.8,
-    "line_width": 1.25,
-    "legend_line_width": 1.45,
-    "marker_size": 3.0,
-    "zero_line_width": 0.65,
-    "grid_line_width": 0.55,
-    "tick_length": 2.4,
-    "tick_width": 0.6,
-    "figure_width_mm": 183,
-    "figure_height_mm": 132,
-}
-
-# Figure E is a dense 10-panel scatter/time-series figure. Keep annotations and
-# point outlines legible without letting them compete with the shared trends.
-E_TRANSITION_STYLE = {
-    "axis_label_size": 10.5,
-    "tick_label_size": 7.6,
-    "panel_label_size": 8.2,
-    "annotation_size": 6.5,
-    "colorbar_label_size": 6.8,
-    "colorbar_tick_size": 6.3,
-    "colorbar_width": 0.010,
-    "colorbar_pad": 0.008,
-    "point_size": 24,
-    "highlight_point_size": 54,
-    "point_edge_width": 0.28,
-    "highlight_edge_width": 0.85,
-    "fit_line_width": 0.85,
-    "time_line_width": 0.85,
-    "grid_line_width": 0.38,
-    "tick_length": 2.2,
-    "tick_width": 0.55,
-    "figure_width_mm": 183,
-    "figure_height_mm": 270,
-}
-
-# Figure G combines small confusion matrices with per-class F1 bars. The
-# annotation hierarchy needs to stay compact so both halves of each panel read
-# as one unit.
-G_CLASSIFICATION_STYLE = {
-    "axis_label_size": 10.5,
-    "tick_label_size": 6.2,
-    "panel_label_size": 7.5,
-    "metric_title_size": 7.0,
-    "cell_label_size": 5.2,
-    "bar_label_size": 5.2,
-    "colorbar_tick_size": 6.0,
-    "tick_length": 1.8,
-    "tick_width": 0.5,
-    "tick_pad": 1.2,
-    "bar_edge_width": 0.55,
-    "heatmap_colorbar_height": 0.010,
-    "figure_width_mm": 183,
-    "figure_height_mm": 270,
-}
-
-# Figure H overlays many seasonal lead trajectories in each source panel. Keep
-# the forecast lines light enough for the observed annual cycle to remain clear.
-H_VARIANCE_SEASONALITY_STYLE = {
-    "axis_label_size": 10.5,
-    "tick_label_size": 7.0,
-    "panel_label_size": 8.0,
-    "legend_size": 7.2,
-    "marker_legend_size": 6.8,
-    "forecast_line_width": 1.15,
-    "observation_line_width": 1.15,
-    "forecast_marker_size": 2.4,
-    "observation_marker_size": 2.2,
-    "marker_edge_width": 0.60,
-    "forecast_alpha": 0.82,
-    "tick_length": 2.0,
-    "tick_width": 0.55,
-    "tick_pad": 1.4,
-    "figure_width_mm": 183,
-    "figure_height_mm": 270,
-}
-
-# Figure I compares annual covariance contributions. The line-panel and
-# heatmap variants share typography but keep separate aspect ratios.
-I_COVARIANCE_STYLE = {
-    "axis_label_size": 8.6,
-    "tick_label_size": 6.8,
-    "panel_label_size": 7.6,
-    "annotation_size": 6.4,
-    "legend_size": 7.0,
-    "line_width": 1.15,
-    "reference_line_width": 0.55,
-    "colorbar_label_size": 7.0,
-    "colorbar_tick_size": 6.3,
-    "colorbar_width": 0.010,
-    "line_figure_width_mm": 183,
-    "line_figure_height_mm": 255,
-    "heatmap_figure_width_mm": 183,
-    "heatmap_figure_height_mm": 150,
-}
 
 # Wong (2011) palette — distinguishable, colourblind-friendly, B&W-printable.
 DATASET_COLORS = {
@@ -338,33 +186,6 @@ def panel_title_only(panel_letter: str) -> str:
     return f"({panel_letter})"
 
 
-def source_panel_grid_1_plus_8(
-    fig: Figure,
-    *,
-    left: float = 0.08,
-    right: float = 0.98,
-    bottom: float = 0.08,
-    top: float = 0.95,
-    wspace: float = 0.14,
-    hspace: float = 0.34,
-) -> list[Axes]:
-    """Create a 9-panel source layout with source_1 centered above a 4-by-2 grid.
-
-    The returned axes are ordered for source_1, then source_2 through source_9.
-    """
-    grid = fig.add_gridspec(
-        5, 2, left=left, right=right, bottom=bottom, top=top, wspace=wspace, hspace=hspace,
-    )
-    lower_cell = grid[1, 0].get_position(fig)
-    top_row = grid[0, :].get_position(fig)
-    top_left = top_row.x0 + (top_row.width - lower_cell.width) / 2
-    top_bottom = top_row.y0 + (top_row.height - lower_cell.height) / 2
-    return [
-        fig.add_axes([top_left, top_bottom, lower_cell.width, lower_cell.height]),
-        *[fig.add_subplot(grid[row, column]) for row in range(1, 5) for column in range(2)],
-    ]
-
-
 def source_panel_grid_5x2(
     fig: Figure,
     *,
@@ -397,28 +218,6 @@ def style_source_panel_axes_5x2(axes: list[Axes], *, n_visible: int | None = Non
         if column_index == 1:
             ax.tick_params(axis="y", labelleft=False)
         if panel_index not in visible_indices[bottom_row_start:]:
-            ax.tick_params(axis="x", labelbottom=False)
-
-
-def style_source_panel_axes(
-    axes: list[Axes],
-    *,
-    has_reference_top: bool = True,
-    bottom_row_start: int | None = None,
-) -> None:
-    """Hide repeated tick labels in source-panel layouts."""
-    if bottom_row_start is None:
-        bottom_row_start = 7 if has_reference_top else max(0, len(axes) - 2)
-
-    for panel_index, ax in enumerate(axes):
-        if has_reference_top and panel_index == 0:
-            is_right_column = False
-        else:
-            lower_index = panel_index - 1 if has_reference_top else panel_index
-            is_right_column = lower_index % 2 == 1
-        if is_right_column:
-            ax.tick_params(axis="y", labelleft=False)
-        if panel_index < bottom_row_start:
             ax.tick_params(axis="x", labelbottom=False)
 
 
@@ -483,17 +282,6 @@ def style_light_grid(
 
 def disable_axis_grid(ax: Axes) -> None:
     ax.grid(False)
-
-
-def style_compact_ticks(
-    ax: Axes,
-    *,
-    labelsize: float = COMPACT_TICK_LABEL_SIZE,
-    length: float = COMPACT_TICK_LENGTH,
-    width: float = COMPACT_TICK_WIDTH,
-    pad: float = COMPACT_TICK_PAD,
-) -> None:
-    ax.tick_params(axis="both", direction="in", labelsize=labelsize, length=length, width=width, pad=pad)
 
 
 def style_colorbar(

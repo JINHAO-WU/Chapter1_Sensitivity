@@ -16,7 +16,6 @@ from A_basic_sources import (
     load_source_forecast_table,
 )
 from plot_style import (
-    B_LEAD_CORRELATION_STYLE,
     DEFAULT_FIGURE_DPI,
     add_compact_figure_legend,
     configure_publication_style,
@@ -30,6 +29,16 @@ from plot_style import (
 # =============================================================================
 # User configuration
 # =============================================================================
+
+B_LEAD_CORRELATION_STYLE = {
+    "axis_label_size": 8.5,
+    "tick_label_size": 8.0,
+    "legend_size": 6.8,
+    "line_width": 1.25,
+    "marker_size": 3.0,
+    "zero_line_width": 0.6,
+    "reference_line_width": 0.8,
+}
 
 BASE_YEAR = 1871
 FIGURE_ID = "B"

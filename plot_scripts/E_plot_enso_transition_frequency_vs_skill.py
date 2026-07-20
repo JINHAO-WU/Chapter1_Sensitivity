@@ -21,7 +21,6 @@ from scipy import stats
 from A_basic_sources import FIGURE_ROOT, get_dl_sources, list_pickle_files
 from plot_style import (
     DEFAULT_FIGURE_DPI,
-    E_TRANSITION_STYLE,
     add_shared_axis_labels,
     configure_publication_style,
     figure_output_paths,
@@ -39,6 +38,28 @@ from plot_style import (
 # =============================================================================
 # User configuration
 # =============================================================================
+
+E_TRANSITION_STYLE = {
+    "axis_label_size": 10.5,
+    "tick_label_size": 7.6,
+    "panel_label_size": 8.2,
+    "annotation_size": 6.5,
+    "colorbar_label_size": 6.8,
+    "colorbar_tick_size": 6.3,
+    "colorbar_width": 0.010,
+    "colorbar_pad": 0.008,
+    "point_size": 24,
+    "highlight_point_size": 54,
+    "point_edge_width": 0.28,
+    "highlight_edge_width": 0.85,
+    "fit_line_width": 0.85,
+    "time_line_width": 0.85,
+    "grid_line_width": 0.38,
+    "tick_length": 2.2,
+    "tick_width": 0.55,
+    "figure_width_mm": 183,
+    "figure_height_mm": 270,
+}
 
 FIGURE_ID = "E"
 FIGURE_NAME = "enso_transition_frequency_vs_skill"
