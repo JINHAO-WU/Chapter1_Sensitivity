@@ -21,13 +21,13 @@ from models import HamCNN, count_trainable_parameters
 # -----------------------------------------------------------------------------
 # Experiment settings
 # -----------------------------------------------------------------------------
-# 修改评分方法、搜索方法、CMIP6 设置或搜索空间时，同步修改 SEARCH_VERSION。
+# Update SEARCH_VERSION whenever the scoring method, search method, CMIP6 settings, or search space changes.
 SEARCH_VERSION = "v1_tpe_obs_all_18_mse_10miroc6"
 SEARCH_METHOD = "tpe"  # "tpe" or "grid"
 # False: only train on observations. True: add selected CMIP6 members.
 MAIN_SCORE_METHOD = "all_18_mse"  # "first_6_mse", "all_18_mse", "weighted_18_mse", "all_pearson_cor"
 RANDOM_SEED = 0
-# TPE 前 TPE_STARTUP_TRIALS 次为随机探索，之后才根据已有 trial 建模采样。
+# The first TPE_STARTUP_TRIALS trials use random exploration; TPE then samples from a model fitted to completed trials.
 N_TRIALS = 10
 TPE_STARTUP_TRIALS = 5
 TPE_MULTIVARIATE = True
@@ -58,7 +58,7 @@ OBS_OHC_PATH = DATA_ROOT / "Obs/OHC/ohc300_SODA_ORAS5_1871-2025.nc"
 CMIP6_ROOT = DATA_ROOT / "CMIP6"
 CMIP6_SST_DIR = CMIP6_ROOT / "SST"
 CMIP6_ENSO_DIR = CMIP6_ROOT / "ENSO"
-# "auto" 表示使用所有 SST/ENSO 文件都存在的 CMIP6 成员。
+# "auto" uses every CMIP6 member for which both SST and ENSO files are available.
 CMIP6_MEMBERS = (
     "MIROC6_hist_r1", "MIROC6_hist_r2",
     "MIROC6_hist_r3", "MIROC6_hist_r4",
@@ -71,7 +71,7 @@ CMIP6_MEMBERS = (
 # -----------------------------------------------------------------------------
 # Search space and outputs
 # -----------------------------------------------------------------------------
-# 同一个 SEARCH_VERSION 内不要改变搜索空间，否则 Optuna 可能出现分布冲突。
+# Do not change the search space within the same SEARCH_VERSION, as this may cause conflicting Optuna distributions.
 TPE_SEARCH_SPACE = {
     "lr": (1e-4, 2e-3),
     "batch_size": [128, 256, 512, 1024],
@@ -94,11 +94,11 @@ GRID_SEARCH_SPACE = {
 }
 SEARCH_SPACE = GRID_SEARCH_SPACE if SEARCH_METHOD == "grid" else TPE_SEARCH_SPACE
 OPTIMIZERS = {"Adam": optim.Adam, "AdamW": optim.AdamW}
-# weighted_18_mse 使用的 lead 权重：前 6 个月更重要。
+# Lead weights for weighted_18_mse: the first six months receive greater weight.
 LEAD_WEIGHTS = np.array([2.0] * 6 + [1.0] * 6 + [0.5] * 6)
 
 RUN_DIR = Path("optuna_runs") / SEARCH_VERSION
-# Optuna 数据库保存 trial 历史、参数分布和诊断信息。
+# The Optuna database stores trial history, parameter distributions, and diagnostics.
 STUDY_DB = RUN_DIR / "optuna_study.db"
 BEST_PARAMS_JSON = RUN_DIR / "best_params.json"
 TRIAL_SUMMARY_CSV = RUN_DIR / "trial_summary.csv"
@@ -124,7 +124,7 @@ def calculate_metrics(y_true, y_pred):
         all_pearson_cor = float(np.corrcoef(true_all, pred_all)[0, 1])
 
     scores = {
-        # Optuna 使用 maximize；MSE 越小越好，所以这里取负数作为 score。
+        # Optuna maximizes the objective; because lower MSE is better, use its negative as the score.
         "first_6_mse": -float(mean_squared_error(y_true[:, :6], y_pred[:, :6])),
         "all_18_mse": -float(mean_squared_error(y_true, y_pred)),
         "weighted_18_mse": -float(np.average(mse_by_lead, weights=LEAD_WEIGHTS)),
@@ -292,7 +292,7 @@ if len(LEAD_WEIGHTS) != LEADING_TIME:
 if INCLUDE_CMIP6_TRAINING and INPUT_VARIABLES != ["sst"]:
     raise ValueError('CMIP6 training currently supports INPUT_VARIABLES = ["sst"] only.')
 if STUDY_DB.exists() and not RESUME_EXISTING_STUDY:
-    # 旧数据库只适合搜索空间和评分方法都没变的 resume 实验。
+    # Resume an existing database only when both the search space and scoring method are unchanged.
     raise FileExistsError(
         f"{STUDY_DB} already exists. Change SEARCH_VERSION, delete the run directory, "
         "or set RESUME_EXISTING_STUDY = True only if the search space is unchanged."
@@ -410,7 +410,7 @@ if SEARCH_METHOD == "grid":
     for values in GRID_SEARCH_SPACE.values():
         n_trials *= len(values)
 else:
-    # startup trials 是随机探索；之后 TPE 根据已完成 trial 建模采样。
+    # Startup trials use random exploration; TPE then samples from a model fitted to completed trials.
     sampler = optuna.samplers.TPESampler(
         seed=RANDOM_SEED,
         n_startup_trials=TPE_STARTUP_TRIALS,
