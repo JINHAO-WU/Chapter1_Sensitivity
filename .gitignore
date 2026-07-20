@@ -2,7 +2,7 @@
 /CLAUDE.md
 /AGENTS.md
 /Figure_Explanations_Summary_CN.md
-/test_plot_style.py
+/plot_scripts/test_plot_style.py
 /.gitignore
 /enso_event_figures_error
 /enso_phase_bias_figures
